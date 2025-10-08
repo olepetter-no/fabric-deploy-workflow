@@ -1,0 +1,104 @@
+name: Microsoft Fabric Deploy
+
+on:
+  workflow_call:
+    inputs:
+      fabric_workspace_id:
+        description: 'Microsoft Fabric workspace ID'
+        required: true
+        type: string
+      source_directory:
+        description: 'Directory containing Fabric artifacts to deploy'
+        required: false
+        type: string
+        default: './fabric'
+      environment:
+        description: 'Target environment (dev, staging, prod)'
+        required: false
+        type: string
+        default: 'dev'
+      dry_run:
+        description: 'Perform a dry run without making changes'
+        required: false
+        type: boolean
+        default: false
+      python_version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.12'
+    secrets:
+      AZURE_CLIENT_ID:
+        description: 'Azure Service Principal Client ID'
+        required: true
+      AZURE_CLIENT_SECRET:
+        description: 'Azure Service Principal Client Secret'
+        required: true
+      AZURE_TENANT_ID:
+        description: 'Azure Tenant ID'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout calling repository
+        uses: actions/checkout@v4
+
+      - name: Checkout fabric-deploy-workflow
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.action_repository || 'olepetter-no/fabric-deploy-workflow' }}
+          path: .fabric-deploy-workflow
+          ref: ${{ github.action_ref || 'main' }}
+
+      - name: Set up Python ${{ inputs.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .fabric-deploy-workflow/.venv
+          key: venv-${{ runner.os }}-${{ inputs.python_version }}-${{ hashFiles('.fabric-deploy-workflow/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        working-directory: .fabric-deploy-workflow
+        run: poetry install --only=main
+
+      - name: Validate inputs
+        working-directory: .fabric-deploy-workflow
+        run: |
+          poetry run fabric-deploy validate \
+            --workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --source-dir "${{ inputs.source_directory }}" \
+            --environment "${{ inputs.environment }}"
+
+      - name: Deploy to Microsoft Fabric
+        working-directory: .fabric-deploy-workflow
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          poetry run fabric-deploy deploy \
+            --workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --source-dir "${{ inputs.source_directory }}" \
+            --environment "${{ inputs.environment }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

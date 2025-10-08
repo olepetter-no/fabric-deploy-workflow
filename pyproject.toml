@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "fabric-deploy-workflow"
+version = "0.1.0"
+description = "Simple GitHub workflow for deploying Microsoft Fabric solutions"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "fabric_deploy", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+azure-identity = "^1.15.0"
+fabric-cicd = "^0.1.29"
+click = "^8.1.0"
+pydantic = "^2.0.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+pre-commit = "^3.0.0"
+
+[tool.poetry.scripts]
+fabric-deploy = "fabric_deploy.cli:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120

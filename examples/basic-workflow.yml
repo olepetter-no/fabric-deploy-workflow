@@ -1,0 +1,30 @@
+name: Deploy to Microsoft Fabric
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Perform dry run validation only'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Microsoft Fabric
+        uses: olepetter-no/fabric-deploy-workflow@main
+        with:
+          workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
+          source_directory: './fabric-artifacts'
+          environment: 'prod'
+          dry_run: ${{ github.event.inputs.dry_run || false }}
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

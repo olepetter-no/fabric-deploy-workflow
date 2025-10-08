@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.12-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install
+
+      - name: Run pre-commit hooks
+        run: poetry run pre-commit run --all-files
+
+      - name: Check CLI works
+        run: |
+          poetry run fabric-deploy --help
+          poetry run fabric-deploy validate --help
+          poetry run fabric-deploy deploy --help
+
+  test-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Test validation with empty directory
+        run: |
+          mkdir -p /tmp/empty-test
+          poetry run fabric-deploy validate \
+            --workspace-id "12345678-1234-1234-1234-123456789abc" \
+            --source-dir "/tmp/empty-test" \
+            --environment "dev"
+
+      - name: Test dry run deployment
+        run: |
+          poetry run fabric-deploy deploy \
+            --workspace-id "12345678-1234-1234-1234-123456789abc" \
+            --source-dir "/tmp/empty-test" \
+            --environment "dev" \
+            --dry-run
