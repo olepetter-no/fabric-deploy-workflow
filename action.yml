@@ -69,21 +69,34 @@ runs:
     - name: Checkout fabric-deploy-workflow
       uses: actions/checkout@v4
       with:
-        repository: ${{ github.action_repository || 'olepetter-no/fabric-deploy-workflow' }}
-        ref: ${{ github.action_ref || 'main' }}
-        path: ./.fabric-deploy-action
-
+        repository: olepetter-no/fabric-deploy-workflow
+        ref: main
+        path: .fabric-deploy-action
+        
     - name: Install fabric-deploy dependencies
       shell: bash
+      working-directory: .fabric-deploy-action
       run: |
         echo "📦 Installing fabric-deploy dependencies..."
-        cd ./.fabric-deploy-action
-        poetry install --only=main --no-interaction
-        echo "✅ Dependencies installed"
-
+        echo "📍 Current directory: $(pwd)"
+        echo "📁 Directory contents:"
+        ls -la
+        echo "🔍 Looking for pyproject.toml:"
+        find . -name "pyproject.toml" -type f
+        
+        if [[ -f "pyproject.toml" ]]; then
+          echo "✅ Found pyproject.toml, installing dependencies..."
+          poetry install --only=main --no-interaction
+          echo "✅ Dependencies installed successfully"
+        else
+          echo "❌ pyproject.toml not found in current directory"
+          exit 1
+        fi
+        
     - name: Deploy to Microsoft Fabric
       id: deploy
       shell: bash
+      working-directory: .fabric-deploy-action
       env:
         AZURE_CLIENT_ID: ${{ env.AZURE_CLIENT_ID }}
         AZURE_CLIENT_SECRET: ${{ env.AZURE_CLIENT_SECRET }}
@@ -94,9 +107,8 @@ runs:
         echo "📁 Source Directory: ${{ inputs.source_directory }}"
         echo "🎯 Environment: ${{ inputs.environment }}"
         echo "🧪 Dry Run: ${{ inputs.dry_run }}"
+        echo "📍 Current directory: $(pwd)"
         echo ""
-
-        cd ./.fabric-deploy-action
 
         # Prepare deployment command
         DEPLOY_CMD="poetry run fabric-deploy deploy"
@@ -125,7 +137,7 @@ runs:
       shell: bash
       run: |
         echo "🧹 Cleaning up temporary files..."
-        rm -rf ./.fabric-deploy-action
+        rm -rf .fabric-deploy-action
         echo "✅ Cleanup completed"
 
 branding:
