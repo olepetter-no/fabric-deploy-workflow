@@ -34,15 +34,15 @@ class GitOperations:
     def get_changed_files_since_tag(self, tag_name: str, source_directory: str) -> list[str]:
         """
         Get list of files changed in source directory since a specific tag.
-        
+
         This method focuses only on changes within the source directory containing
         Fabric artifacts, ignoring changes to documentation, workflows, or other
         non-deployment-relevant files.
-        
+
         Args:
             tag_name: Git tag to compare against
             source_directory: Path to source directory containing Fabric artifacts
-            
+
         Returns:
             List of changed file paths relative to repository root
         """
@@ -53,9 +53,9 @@ class GitOperations:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
-            changed_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
+            changed_files = [f.strip() for f in result.stdout.split("\n") if f.strip()]
             logger.info(f"Found {len(changed_files)} changed files in {source_directory} since {tag_name}")
             logger.debug(f"Changed files: {changed_files}")
             return changed_files

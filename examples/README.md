@@ -104,12 +104,12 @@ Production-focused workflow with enhanced safety:
 ### Required Secrets
 ```
 AZURE_CLIENT_ID               # Service Principal Application ID
-AZURE_CLIENT_SECRET           # Service Principal Secret  
+AZURE_CLIENT_SECRET           # Service Principal Secret
 AZURE_TENANT_ID               # Azure Tenant ID
 
 # For multi-environment (optional - can use environment-specific):
 DEV_AZURE_CLIENT_ID           # Dev-specific Service Principal
-DEV_AZURE_CLIENT_SECRET      
+DEV_AZURE_CLIENT_SECRET
 STAGING_AZURE_CLIENT_ID       # Staging-specific Service Principal
 STAGING_AZURE_CLIENT_SECRET
 PROD_AZURE_CLIENT_ID          # Production-specific Service Principal

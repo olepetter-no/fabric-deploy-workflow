@@ -31,7 +31,7 @@ jobs:
               "prod")
                 WORKSPACE_ID="${{ vars.PROD_FABRIC_WORKSPACE_ID }}"
                 ;;
-              "staging") 
+              "staging")
                 WORKSPACE_ID="${{ vars.STAGING_FABRIC_WORKSPACE_ID }}"
                 ;;
               "dev")
@@ -55,7 +55,7 @@ jobs:
                 ;;
             esac
           fi
-          
+
           echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
           echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
           echo "🎯 Deploying to: $TARGET_ENV (workspace: $WORKSPACE_ID)"

@@ -118,7 +118,7 @@ jobs:
               FABRIC_ITEMS_ARGS="$FABRIC_ITEMS_ARGS --fabric-items $(echo $item | xargs)"
             done
           fi
-          
+
           poetry run fabric-deploy deploy \
             --workspace-id "${{ inputs.fabric_workspace_id }}" \
             --source-dir "${{ inputs.source_directory }}" \

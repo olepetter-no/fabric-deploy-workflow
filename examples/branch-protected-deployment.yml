@@ -37,7 +37,7 @@ jobs:
         run: |
           # Initialize variables
           SHOULD_DEPLOY="true"
-          
+
           # Handle pull request validation
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             TARGET_ENV="dev"
@@ -48,7 +48,7 @@ jobs:
             echo "should_deploy=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           # Determine target environment
           if [ "${{ inputs.environment }}" != "" ] && [ "${{ inputs.force_deploy }}" = "true" ]; then
             # Manual override with force flag - bypasses protection
@@ -58,7 +58,7 @@ jobs:
             # Manual override - validate branch protection rules
             TARGET_ENV="${{ inputs.environment }}"
             echo "🎯 Manual deployment requested: ${{ github.ref_name }} → $TARGET_ENV"
-            
+
             # Validate branch protection rules
             case "$TARGET_ENV" in
               "prod")
@@ -108,13 +108,13 @@ jobs:
                 ;;
             esac
           fi
-          
+
           # Exit early if deployment should not proceed
           if [ "$SHOULD_DEPLOY" = "false" ]; then
             echo "should_deploy=false" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           # Set workspace ID based on environment
           case "$TARGET_ENV" in
             "prod")
@@ -132,13 +132,13 @@ jobs:
               exit 1
               ;;
           esac
-          
+
           echo "✅ Deployment approved:"
           echo "   Branch: ${{ github.ref_name }}"
           echo "   Environment: $TARGET_ENV"
           echo "   Workspace: $WORKSPACE_ID"
           echo ""
-          
+
           echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
           echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
           echo "should_deploy=true" >> $GITHUB_OUTPUT

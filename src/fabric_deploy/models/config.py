@@ -9,7 +9,7 @@ from enum import Enum
 # Global Fabric item type configuration
 FABRIC_ITEM_TYPES = [
     "Notebook",
-    "DataPipeline", 
+    "DataPipeline",
     "Environment",
     "Report",
     "SemanticModel",
@@ -18,7 +18,8 @@ FABRIC_ITEM_TYPES = [
     "KQLDatabase",
 ]
 
-FABRIC_ITEM_EXTENSIONS = [ f".{item}" for item in FABRIC_ITEM_TYPES ]
+FABRIC_ITEM_EXTENSIONS = [f".{item}" for item in FABRIC_ITEM_TYPES]
+
 
 class DeployMode(Enum):
     FULL = "full"
@@ -63,7 +64,9 @@ class DeploymentConfig:
             # Validate that specified types are supported
             invalid_types = [t for t in self.fabric_item_types if t not in FABRIC_ITEM_TYPES]
             if invalid_types:
-                raise ValueError(f"Unsupported Fabric item types: {invalid_types}. Supported types: {FABRIC_ITEM_TYPES}")
-            
+                raise ValueError(
+                    f"Unsupported Fabric item types: {invalid_types}. Supported types: {FABRIC_ITEM_TYPES}"
+                )
+
         # Generate extensions list from selected types
         self.fabric_item_extensions = [f".{item}" for item in self.fabric_item_types]

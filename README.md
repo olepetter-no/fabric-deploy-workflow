@@ -77,7 +77,7 @@ your-repo/
 
 **Repository Secrets:**
 - `AZURE_CLIENT_ID` - Service Principal Client ID
-- `AZURE_CLIENT_SECRET` - Service Principal Client Secret  
+- `AZURE_CLIENT_SECRET` - Service Principal Client Secret
 - `AZURE_TENANT_ID` - Azure Tenant ID
 
 **Repository Variables:**
