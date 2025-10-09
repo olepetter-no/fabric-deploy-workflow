@@ -79,10 +79,10 @@ class FabricValidator:
 
         # Basic format validation (Fabric workspace IDs are GUIDs)
         if len(workspace_id) != 36:
-            self.warnings.append("Workspace ID does not appear to be a standard GUID format")
+            self.errors.append("Workspace ID must be a standard 36-character GUID")
             return
 
         # Check for GUID pattern
         guid_pattern = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
         if not guid_pattern.match(workspace_id):
-            self.warnings.append("Workspace ID does not match expected GUID format")
+            self.errors.append("Workspace ID does not match expected GUID format")

@@ -17,7 +17,7 @@ from fabric_cicd import (
     unpublish_all_orphan_items
 )
 
-from ..models.config import DeploymentConfig, DeployMode, FABRIC_ITEM_EXTENSIONS, FABRIC_ITEM_TYPES
+from ..models.config import DeploymentConfig, DeployMode
 from ..utils.git_operations import GitOperations
 from ..utils.lakehouse_processor import LakehouseStandardizer
 
@@ -97,14 +97,16 @@ class FabricDeployer:
             item_type_in_scope=self.config.fabric_item_types,
         )
     
-    def _handle_full_deployment(self, target_workspace: 'FabricWorkspace') -> int:       
+    def _handle_full_deployment(self, target_workspace: 'FabricWorkspace') -> int:
         self.logger.info("📤 Publishing all items to Fabric workspace (full deployment)...")
         if self.config.dry_run:
             self.logger.info("🔄 Dry run: Would perform FULL deployment of all items")
-            return -1 
-        
+            # Return -1 to signal to the CLI that this represents a full deployment without a count
+            return -1
+
         publish_all_items(target_workspace)
-        return -1  # Indicate full deployment
+        # Return -1 to signal a full deployment (rather than a count of deployed items)
+        return -1
 
     def _handle_incremental_deployment(self, target_workspace: 'FabricWorkspace') -> int:       
         tag_name = self.git_ops.get_deployment_tag(self.config.environment)

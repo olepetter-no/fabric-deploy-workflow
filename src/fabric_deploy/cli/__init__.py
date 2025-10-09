@@ -24,7 +24,11 @@ def cli() -> None:
 
 @cli.command()
 @click.option("--workspace-id", required=True, help="Microsoft Fabric workspace ID")
-@click.option("--source-dir", default="./fabric", help="Source directory containing Fabric artifacts")
+@click.option(
+    "--source-dir",
+    default="./fabric",
+    help="Source directory containing Fabric artifacts (must live inside a git repo)",
+)
 @click.option("--environment", default="dev", help="Target environment")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool) -> None:
@@ -50,7 +54,11 @@ def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool
 
 @cli.command()
 @click.option("--workspace-id", required=True, help="Microsoft Fabric workspace ID")
-@click.option("--source-dir", default="./fabric", help="Source directory containing Fabric artifacts")
+@click.option(
+    "--source-dir",
+    default="./fabric",
+    help="Source directory containing Fabric artifacts (must live inside a git repo)",
+)
 @click.option("--environment", default="dev", help="Target environment")
 @click.option("--dry-run", is_flag=True, help="Perform a dry run without making changes")
 @click.option("--deploy-mode", 
