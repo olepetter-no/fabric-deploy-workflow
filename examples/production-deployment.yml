@@ -12,6 +12,10 @@ on:
         description: 'Standardize lakehouse references before deployment'
         type: boolean
         default: true  # Recommended for production
+      fabric_item_types:
+        description: 'Fabric items to deploy (comma-separated, e.g., "Notebook,DataPipeline")'
+        type: string
+        default: ''  # Deploy all types by default
 
 jobs:
   # Optional: Validate before deploying
@@ -23,6 +27,7 @@ jobs:
       environment: 'prod'
       deploy_mode: ${{ inputs.deploy_mode }}
       standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      fabric_item_types: ${{ inputs.fabric_item_types }}
       dry_run: true  # Validation only
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.PROD_AZURE_CLIENT_ID }}
@@ -39,6 +44,7 @@ jobs:
       environment: 'prod'
       deploy_mode: ${{ inputs.deploy_mode }}
       standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      fabric_item_types: ${{ inputs.fabric_item_types }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.PROD_AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.PROD_AZURE_CLIENT_SECRET }}

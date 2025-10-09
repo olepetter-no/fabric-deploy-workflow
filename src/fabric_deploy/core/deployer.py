@@ -17,7 +17,7 @@ from fabric_cicd import (
     unpublish_all_orphan_items
 )
 
-from ..models.config import DeploymentConfig, DeployMode, FABRIC_ITEM_EXTENSIONS
+from ..models.config import DeploymentConfig, DeployMode, FABRIC_ITEM_EXTENSIONS, FABRIC_ITEM_TYPES
 from ..utils.git_operations import GitOperations
 from ..utils.lakehouse_processor import LakehouseStandardizer
 
@@ -63,13 +63,9 @@ class FabricDeployer:
         )
 
     def _map_changed_files_to_items(self, changed_files: list[str]) -> list[str]:
-        """Map changed files to Fabric item names by finding .Notebook/.DataPipeline directories"""
+        """Map changed files to Fabric item names by finding Fabric item directories"""
         items = []
         source_dir_name = self.config.source_directory.name
-        
-        # Fabric item types that have directory extensions
-        FABRIC_EXTENSIONS = [".Notebook", ".DataPipeline", ".Environment", ".Report", 
-                            ".SemanticModel", ".Lakehouse", ".Warehouse", ".KQLDatabase"]
         
         for file_path in changed_files:
             path_obj = Path(file_path)
@@ -78,9 +74,9 @@ class FabricDeployer:
                 source_index = path_obj.parts.index(source_dir_name)
                 remaining_parts = path_obj.parts[source_index + 1:]
                 
-                # Find the first directory that ends with a Fabric extension
+                # Find the first directory that ends with a configured Fabric extension
                 for part in remaining_parts:
-                    if any(part.endswith(ext) for ext in FABRIC_EXTENSIONS):
+                    if any(part.endswith(ext) for ext in self.config.fabric_item_extensions):
                         if part not in items:
                             items.append(part)
                             self.logger.info(f"Mapped changed file to item: {part}")
@@ -98,16 +94,7 @@ class FabricDeployer:
             workspace_id=self.config.workspace_id,
             environment=self.config.environment,
             repository_directory=str(self.config.source_directory),
-            item_type_in_scope=[
-                "Notebook",
-                "DataPipeline", 
-                "Environment",
-                "Report",
-                "SemanticModel",
-                "Lakehouse",
-                "Warehouse",
-                "KQLDatabase",
-            ],
+            item_type_in_scope=self.config.fabric_item_types,
         )
     
     def _handle_full_deployment(self, target_workspace: 'FabricWorkspace') -> int:       
@@ -199,9 +186,8 @@ class FabricDeployer:
 
             # Clean up and update tags
             self._cleanup_and_tag_deployment(deployed_items, effective_mode, target_workspace)
-            action = "deployed"
 
-            self.logger.info(f"Deployment completed successfully - artifacts {action}")
+            self.logger.info(f"Deployment completed successfully - artifacts deployed")
             return DeploymentResult(
                 success=True, 
                 deployed_items=deployed_items,

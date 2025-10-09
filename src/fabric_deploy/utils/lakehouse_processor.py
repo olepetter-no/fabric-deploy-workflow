@@ -1,8 +1,6 @@
-import os
 import pathlib
 import re
 import logging
-from typing import Pattern
 
 class LakehouseStandardizer:
     """Standardizes lakehouse references in Fabric notebooks for environment-specific deployment."""

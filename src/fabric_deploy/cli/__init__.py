@@ -7,12 +7,11 @@ Provides command-line interface for deployment operations.
 import click
 import sys
 from pathlib import Path
-from typing import Optional
 import logging
 
 from ..core.deployer import FabricDeployer
 from ..core.validator import FabricValidator
-from ..models.config import DeploymentConfig
+from ..models.config import DeploymentConfig, FABRIC_ITEM_TYPES
 from ..utils.logging import setup_logging
 from ..utils.auth import get_azure_credential
 
@@ -61,7 +60,11 @@ def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--standardize-lakehouse-refs", is_flag=True, 
               help="Standardize lakehouse references in notebooks before deployment")
-def deploy(workspace_id: str, source_dir: str, environment: str, dry_run: bool, deploy_mode: str, standardize_lakehouse_refs: bool, verbose: bool) -> None:
+@click.option("--fabric-items", 
+              multiple=True,
+              type=click.Choice(FABRIC_ITEM_TYPES, case_sensitive=False),
+              help=f"Fabric item types to deploy (default: all). Available: {', '.join(FABRIC_ITEM_TYPES)}")
+def deploy(workspace_id: str, source_dir: str, environment: str, dry_run: bool, deploy_mode: str, standardize_lakehouse_refs: bool, verbose: bool, fabric_items: tuple[str]) -> None:
     """Deploy artifacts to Microsoft Fabric"""
     setup_logging(verbose=verbose)
     try:
@@ -71,7 +74,8 @@ def deploy(workspace_id: str, source_dir: str, environment: str, dry_run: bool, 
             environment=environment, 
             dry_run=dry_run,
             deploy_mode=deploy_mode,
-            standardize_lakehouse_refs=standardize_lakehouse_refs
+            standardize_lakehouse_refs=standardize_lakehouse_refs,
+            fabric_item_types=list(fabric_items) if fabric_items else None
         )
         
         credential = get_azure_credential()

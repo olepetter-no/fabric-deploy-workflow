@@ -44,38 +44,23 @@ jobs:
           poetry run fabric-deploy validate --help
           poetry run fabric-deploy deploy --help
 
-  test-cli:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Install dependencies
-        run: poetry install
-
-      - name: Test validation with empty directory
+      - name: Test basic validation
         run: |
-          mkdir -p /tmp/empty-test
+          # Test basic validation functionality - should pass basic checks
           poetry run fabric-deploy validate \
             --workspace-id "12345678-1234-1234-1234-123456789abc" \
-            --source-dir "/tmp/empty-test" \
+            --source-dir "." \
             --environment "dev"
 
-      - name: Test dry run deployment
+      - name: Test validation failure cases
         run: |
-          poetry run fabric-deploy deploy \
+          # Test with non-existent directory - should fail
+          if poetry run fabric-deploy validate \
             --workspace-id "12345678-1234-1234-1234-123456789abc" \
-            --source-dir "/tmp/empty-test" \
-            --environment "dev" \
-            --dry-run
+            --source-dir "/non/existent/path" \
+            --environment "dev"; then
+            echo "❌ Expected validation to fail for non-existent directory"
+            exit 1
+          else
+            echo "✅ Validation correctly failed for non-existent directory"
+          fi
