@@ -20,46 +20,23 @@ This repository provides a **GitHub Action template** that other repositories ca
 
 ## 🚀 Quick Start
 
-### Method 1: Simple Action Usage ⭐ **Recommended for most users**
-
-Add a single step to your workflow:
-
-```yaml
-name: Deploy to Microsoft Fabric
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Microsoft Fabric
-        uses: olepetter-no/fabric-deploy-workflow@main
-        with:
-          workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
-          source_directory: './fabric-artifacts'
-          environment: 'prod'
-          dry_run: false
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-```
-
-### Method 2: Reusable Workflow Usage 🔧 **For advanced scenarios**
-
 Create `.github/workflows/fabric-deploy.yml` in your repository:
 
 ```yaml
 name: Deploy to Microsoft Fabric
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: ['dev', 'staging', 'prod']
+        default: 'dev'
+      dry_run:
+        description: 'Perform dry run'
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -67,14 +44,13 @@ jobs:
     with:
       fabric_workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
       source_directory: './fabric-artifacts'
-      environment: 'prod'
+      environment: ${{ inputs.environment }}
+      dry_run: ${{ inputs.dry_run }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-```
-
-### 2. Setup Repository Structure
+```### 2. Setup Repository Structure
 
 Your repository should follow the standard `fabric-cicd` structure:
 
@@ -107,16 +83,7 @@ your-repo/
 **Required Variables:**
 - `FABRIC_WORKSPACE_ID` - Target Fabric workspace ID
 
-## 📋 Action Inputs (for Method 1)
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `workspace_id` | ✅ | - | Microsoft Fabric workspace ID (GUID) |
-| `source_directory` | ❌ | `./fabric-artifacts` | Directory containing Fabric artifacts |
-| `environment` | ❌ | `dev` | Target environment (dev/staging/prod) |
-| `dry_run` | ❌ | `false` | Perform validation without deployment |
-
-## 📋 Workflow Inputs (for Method 2)
+## 📋 Workflow Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
@@ -189,19 +156,36 @@ poetry run fabric-deploy deploy \
   --environment "prod"
 ```
 
-## 🤔 Which Method Should I Use?
+## 🤔 Usage Patterns
 
-### **Use Method 1 (Action)** if you:
-- ✅ Want the **simplest setup** possible
-- ✅ Need to **combine** with other workflow steps
-- ✅ Want **GitHub Marketplace discoverability**
-- ✅ Prefer **single-step deployment**
+### **Manual Deployments** 🎯 **Recommended**
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: ['dev', 'staging', 'prod']
+      dry_run:
+        type: boolean
+        default: false
+```
 
-### **Use Method 2 (Workflow)** if you:
-- ✅ Need **advanced workflow features** (matrix builds, environments)
-- ✅ Want **isolated job execution**
-- ✅ Require **complex conditional logic**
-- ✅ Prefer **dedicated deployment jobs**
+### **Automatic Deployments**
+```yaml
+on:
+  push:
+    branches: [main, develop]
+  # Deploys automatically on push
+```
+
+### **Pull Request Validation**
+```yaml
+on:
+  pull_request:
+    branches: [main]
+  # Always uses dry_run for validation
+```
 
 ## 📚 Examples
 
