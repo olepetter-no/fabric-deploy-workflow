@@ -1,342 +1,154 @@
-# Using fabric-deploy-workflow
+# Usage Examples
 
-Complete guide for using the `fabric-deploy-workflow` in your Microsoft Fabric projects. Two usage methods available!
+This directory contains example workflows demonstrating how to use the fabric-deploy-workflow for different scenarios.
 
-## � Example Files
+## Example Workflows
 
-- **[`basic-workflow.yml`](basic-workflow.yml)** - Using the composite action (recommended for most users)
-- **[`reusable-workflow.yml`](reusable-workflow.yml)** - Using the reusable workflow (advanced scenarios)
+### 1. `basic-workflow.yml` - Simple Manual Deployment
+A basic workflow triggered manually with workflow_dispatch. Includes support for:
+- Environment selection (dev/staging/prod)
+- Deploy mode selection (auto/incremental/full)
+- Dry run validation
+- Manual approval through GitHub UI
 
-## �🚀 Quick Start
+**Use case**: Manual deployments with full control over deployment mode and target environment.
 
-### Method 1: Simple Action Usage ⭐ **Most Popular**
+### 2. `incremental-deployment.yml` - Automated Incremental Deployments
+Demonstrates automated incremental deployments on every push to main and PR validation:
+- Automatic incremental deployment to dev on push to main
+- PR validation with dry run mode
+- Only triggers when Fabric artifacts change
 
-**File**: [`basic-workflow.yml`](basic-workflow.yml)
+**Use case**: Fast iteration in development with automatic change detection.
 
-Add to any workflow step:
+### 3. `multi-environment.yml` - Multi-Environment Pipeline
+Shows deployment across multiple environments with environment-specific configuration:
+- Auto mode deployment (incremental for dev/staging, full for prod)
+- Environment-specific secrets and workspace IDs
+- Optional staging deployment after dev success
+- Dynamic secret and variable references
 
-```yaml
-- name: Deploy to Microsoft Fabric
-  uses: olepetter-no/fabric-deploy-workflow@main
-  with:
-    workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
-    source_directory: './fabric-artifacts'
-    environment: 'prod'
-  env:
-    AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-    AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-    AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+**Use case**: Production-ready pipeline with environment promotion and appropriate deployment modes.
+
+### 4. `production-deployment.yml` - Production with Approval
+Production-focused workflow with enhanced safety:
+- Requires manual approval (GitHub environment protection)
+- Defaults to full deployment for production safety
+- Optional validation step before deployment
+- Careful control over production deployments
+
+**Use case**: Critical production deployments requiring approval and validation.
+
+### 5. `branch-protected-deployment.yml` - Branch Protection Example
+Demonstrates how to implement branch protection rules in your own workflow:
+- Automatic environment detection based on branch name
+- Configurable branch protection rules (main→prod, staging→staging, etc.)
+- Force deployment option for emergency scenarios
+- Clear error messages when protection rules are violated
+- Pull request validation with dry-run mode
+
+**Use case**: Organizations that need strict branch-to-environment controls.
+
+### 6. `simple-auto-deploy.yml` - Simple Branch Mapping
+Shows basic branch-to-environment mapping without complex protection:
+- Automatic deployment based on branch (main→prod, staging→staging, dev→dev)
+- Manual override support
+- Minimal complexity for teams with simpler needs
+
+**Use case**: Teams with simple deployment needs and trusted developers.
+
+## Branch Protection Strategies
+
+The reusable workflow is **environment agnostic** - it simply deploys to whatever environment you specify. **You control the branch protection logic** in your own workflow.
+Production-focused workflow with enhanced safety:
+- Requires manual approval (GitHub environment protection)
+- Defaults to full deployment for production safety
+- Optional validation step before deployment
+- Careful control over production deployments
+
+**Use case**: Critical production deployments requiring approval and validation.
+
+## Deploy Mode Guide
+
+### Auto Mode (Recommended)
+- **Dev/Staging**: Uses incremental deployment for speed
+- **Production**: Uses full deployment for safety
+- Automatically selects the appropriate mode based on environment
+
+### Incremental Mode
+- Only deploys items that have changed in the source directory since last deployment
+- Tracks deployment state using git tags (`latestDeployed/{environment}`)
+- Ignores changes outside the source directory (documentation, workflows, etc.)
+- Faster deployments with automatic change detection focused on Fabric artifacts
+- Falls back to full deployment if git history is unavailable
+
+### Full Mode
+- Deploys all items regardless of changes
+- Safer for production environments
+- Slower but ensures complete deployment state
+- Recommended for critical environments
+
+## Getting Started
+
+1. **Choose an example** that matches your deployment pattern
+2. **Copy the workflow** to `.github/workflows/` in your repository
+3. **Configure secrets** in your GitHub repository:
+   - `AZURE_CLIENT_ID`
+   - `AZURE_CLIENT_SECRET`
+   - `AZURE_TENANT_ID`
+4. **Set variables** for your Fabric workspace IDs
+5. **Customize** the workflow for your specific needs
+
+## Configuration Requirements
+
+### Required Secrets
+```
+AZURE_CLIENT_ID               # Service Principal Application ID
+AZURE_CLIENT_SECRET           # Service Principal Secret  
+AZURE_TENANT_ID               # Azure Tenant ID
+
+# For multi-environment (optional - can use environment-specific):
+DEV_AZURE_CLIENT_ID           # Dev-specific Service Principal
+DEV_AZURE_CLIENT_SECRET      
+STAGING_AZURE_CLIENT_ID       # Staging-specific Service Principal
+STAGING_AZURE_CLIENT_SECRET
+PROD_AZURE_CLIENT_ID          # Production-specific Service Principal
+PROD_AZURE_CLIENT_SECRET
 ```
 
-### Method 2: Reusable Workflow Usage 🔧 **Advanced**
-
-**File**: [`reusable-workflow.yml`](reusable-workflow.yml)
-
-Create `.github/workflows/fabric-deploy.yml` in your repository:
-
-```yaml
-name: Deploy to Microsoft Fabric
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
-    with:
-      fabric_workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
-      environment: 'prod'
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+### Required Variables
+```
+FABRIC_WORKSPACE_ID           # For single environment
+DEV_FABRIC_WORKSPACE_ID       # For multi-environment
+STAGING_FABRIC_WORKSPACE_ID
+PROD_FABRIC_WORKSPACE_ID
 ```
 
-### 2. Repository Structure
-
-Structure your repository following the `fabric-cicd` format:
-
+### Repository Structure
 ```
 your-repo/
-├── .github/workflows/
-│   └── fabric-deploy.yml              # Your workflow file
-├── fabric-artifacts/                  # Source directory
-│   ├── Reports/
-│   │   └── SalesReport/
-│   │       ├── item.metadata.json     # Item metadata
-│   │       └── definition.json        # Report definition
-│   ├── Notebooks/
-│   │   └── DataProcessing/
-│   │       ├── item.metadata.json
-│   │       └── notebook-content.py
-│   ├── Lakehouses/
-│   │   └── DataLake/
-│   │       ├── item.metadata.json
-│   │       └── definition.json
-│   └── Warehouses/
-│       └── SalesWarehouse/
-│           ├── item.metadata.json
-│           └── definition.json
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # Your workflow
+├── fabric-artifacts/           # Your Fabric items
+│   ├── reports/
+│   ├── datasets/
+│   └── notebooks/
 └── README.md
 ```
 
-### 3. Item Metadata Format
+## Best Practices
 
-Each Fabric item requires an `item.metadata.json` file:
+1. **Environment Separation**: Use different Azure Service Principals and Fabric workspaces for each environment
+2. **Deploy Mode Selection**: Use `auto` mode for most scenarios, override only when needed
+3. **Change Detection**: Ensure your repository has proper git history for incremental deployments
+4. **Validation**: Use dry run mode for PR validation and pre-deployment checks
+5. **Production Safety**: Require manual approval for production deployments
+6. **Monitoring**: Review deployment logs and handle failures appropriately
 
-```json
-{
-  "type": "Report",
-  "displayName": "Sales Report",
-  "description": "Monthly sales performance report"
-}
-```
+## Troubleshooting
 
-Common item types:
-- `Report` - Power BI reports
-- `Notebook` - Fabric notebooks
-- `Lakehouse` - Data lakehouses
-- `Warehouse` - SQL warehouses
-- `SemanticModel` - Datasets/semantic models
-- `DataPipeline` - Data integration pipelines
-
-## ⚙️ Configuration
-
-### Repository Secrets
-
-Add these secrets in your repository settings:
-
-| Secret | Description | Example |
-|--------|-------------|---------|
-| `AZURE_CLIENT_ID` | Service Principal Client ID | `12345678-1234-1234-1234-123456789abc` |
-| `AZURE_CLIENT_SECRET` | Service Principal Client Secret | `your-client-secret-here` |
-| `AZURE_TENANT_ID` | Azure Tenant ID | `87654321-4321-4321-4321-cba987654321` |
-
-### Repository Variables
-
-Add these variables in your repository settings:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `FABRIC_WORKSPACE_ID` | Target Fabric workspace ID | `11111111-2222-3333-4444-555555555555` |
-
-### Service Principal Setup
-
-Your Service Principal needs these permissions:
-- **Fabric Admin** - For workspace access
-- **Power BI Service Admin** - For report deployment
-- **Contributor** - On the target Fabric workspace
-
-## 🔧 Advanced Usage
-
-### Complete Workflow Example (Action Method)
-
-```yaml
-name: Deploy to Multiple Environments
-
-on:
-  push:
-    branches: [main, develop]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'dev'
-        type: choice
-        options: ['dev', 'staging', 'prod']
-      dry_run:
-        description: 'Perform dry run only'
-        required: false
-        default: false
-        type: boolean
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Microsoft Fabric
-        uses: olepetter-no/fabric-deploy-workflow@main
-        with:
-          workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
-          source_directory: './fabric-artifacts'
-          environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod' || 'dev') }}
-          dry_run: ${{ github.event.inputs.dry_run || false }}
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Check deployment status
-        if: always()
-        run: |
-          if [[ "${{ steps.deploy.outputs.deployment_status }}" == "success" ]]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed: ${{ steps.deploy.outputs.error_message }}"
-            exit 1
-          fi
-```
-
-### Multi-Environment Deployment (Workflow Method)
-
-```yaml
-name: Deploy to Multiple Environments
-
-on:
-  push:
-    branches: [main, develop]
-
-jobs:
-  deploy-dev:
-    if: github.ref == 'refs/heads/develop'
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
-    with:
-      fabric_workspace_id: ${{ vars.DEV_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
-      environment: 'dev'
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-  deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
-    with:
-      fabric_workspace_id: ${{ vars.PROD_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
-      environment: 'prod'
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-```
-
-### Pull Request Validation
-
-```yaml
-name: Validate Fabric Artifacts
-
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  validate:
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
-    with:
-      fabric_workspace_id: ${{ vars.DEV_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
-      environment: 'dev'
-      dry_run: true  # Only validate, don't deploy
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-```
-
-### Manual Deployment with Options
-
-```yaml
-name: Manual Fabric Deployment
-
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-        - dev
-        - staging
-        - prod
-      dry_run:
-        description: 'Perform dry run only'
-        required: false
-        default: false
-        type: boolean
-
-jobs:
-  deploy:
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
-    with:
-      fabric_workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
-      environment: ${{ github.event.inputs.environment }}
-      dry_run: ${{ github.event.inputs.dry_run }}
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-```
-
-## 📁 Supported Fabric Items
-
-The workflow supports all Microsoft Fabric item types:
-
-| Item Type | Description | Metadata Example |
-|-----------|-------------|------------------|
-| **Report** | Power BI reports | `{"type": "Report", "displayName": "Sales Report"}` |
-| **Notebook** | Fabric notebooks | `{"type": "Notebook", "displayName": "Data Processing"}` |
-| **Lakehouse** | Data lakehouses | `{"type": "Lakehouse", "displayName": "Sales Data"}` |
-| **Warehouse** | SQL warehouses | `{"type": "Warehouse", "displayName": "EDW"}` |
-| **SemanticModel** | Datasets/models | `{"type": "SemanticModel", "displayName": "Sales Model"}` |
-| **DataPipeline** | Data pipelines | `{"type": "DataPipeline", "displayName": "ETL Pipeline"}` |
-| **Environment** | Spark environments | `{"type": "Environment", "displayName": "ML Environment"}` |
-| **KQLDatabase** | KQL databases | `{"type": "KQLDatabase", "displayName": "Telemetry DB"}` |
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Authentication Failed**
-```
-Error: Failed to authenticate with Azure
-```
-- Verify Service Principal credentials in repository secrets
-- Check Service Principal has Fabric workspace permissions
-
-**Workspace Not Found**
-```
-Error: Workspace with ID 'xxx' not found
-```
-- Verify `FABRIC_WORKSPACE_ID` variable is correct
-- Ensure Service Principal has access to the workspace
-
-**Invalid Artifact Structure**
-```
-Error: Missing item.metadata.json
-```
-- Ensure each artifact has `item.metadata.json` file
-- Verify JSON format is valid
-
-### Debug Mode
-
-Enable debug logging by adding to your workflow:
-
-```yaml
-env:
-  ACTIONS_STEP_DEBUG: true
-  FABRIC_DEBUG: true
-```
-
-## 💡 Best Practices
-
-1. **Use Dry Run First** - Always test with `dry_run: true` before actual deployment
-2. **Environment Separation** - Use different workspaces for dev/staging/prod
-3. **Version Control** - Tag releases for stable deployment versions
-4. **Secret Management** - Rotate Service Principal secrets regularly
-5. **Validation** - Use PR validation to catch issues early
-
-## 📚 References
-
-- [fabric-cicd Documentation](https://github.com/microsoft/fabric-cicd)
-- [Microsoft Fabric Documentation](https://learn.microsoft.com/en-us/fabric/)
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- **Incremental deployment falls back to full**: Check git history and tag existence
+- **Authentication failures**: Verify Service Principal permissions and secrets
+- **No changes detected**: Ensure files in `source_directory` have actually changed
+- **Deployment timeout**: Consider using incremental mode for large repositories

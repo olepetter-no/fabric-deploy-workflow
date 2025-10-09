@@ -8,6 +8,11 @@ on:
         type: choice
         options: ['dev', 'staging', 'prod']
         default: 'dev'
+      deploy_mode:
+        description: 'Deployment mode'
+        type: choice
+        options: ['auto', 'incremental', 'full']
+        default: 'auto'
       dry_run:
         description: 'Perform dry run validation only'
         required: false
@@ -21,6 +26,7 @@ jobs:
       fabric_workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
       source_directory: './fabric-artifacts'
       environment: ${{ inputs.environment }}
+      deploy_mode: ${{ inputs.deploy_mode }}
       dry_run: ${{ inputs.dry_run }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

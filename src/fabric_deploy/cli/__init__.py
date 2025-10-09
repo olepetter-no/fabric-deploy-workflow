@@ -6,9 +6,9 @@ Provides command-line interface for deployment operations.
 
 import click
 import sys
-import logging
 from pathlib import Path
 from typing import Optional
+import logging
 
 from ..core.deployer import FabricDeployer
 from ..core.validator import FabricValidator
@@ -18,19 +18,19 @@ from ..utils.auth import get_azure_credential
 
 
 @click.group()
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
-@click.option("--log-file", help="Log file path")
-def cli(verbose: bool, log_file: Optional[str]) -> None:
+def cli() -> None:
     """Microsoft Fabric deployment CLI"""
-    setup_logging(verbose=verbose, log_file=log_file)
+    pass
 
 
 @cli.command()
 @click.option("--workspace-id", required=True, help="Microsoft Fabric workspace ID")
 @click.option("--source-dir", default="./fabric", help="Source directory containing Fabric artifacts")
 @click.option("--environment", default="dev", help="Target environment")
-def validate(workspace_id: str, source_dir: str, environment: str) -> None:
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool) -> None:
     """Validate deployment configuration and artifacts"""
+    setup_logging(verbose=verbose)
     try:
         config = DeploymentConfig(workspace_id=workspace_id, source_directory=Path(source_dir), environment=environment)
 
@@ -54,24 +54,48 @@ def validate(workspace_id: str, source_dir: str, environment: str) -> None:
 @click.option("--source-dir", default="./fabric", help="Source directory containing Fabric artifacts")
 @click.option("--environment", default="dev", help="Target environment")
 @click.option("--dry-run", is_flag=True, help="Perform a dry run without making changes")
-def deploy(workspace_id: str, source_dir: str, environment: str, dry_run: bool) -> None:
+@click.option("--deploy-mode", 
+              type=click.Choice(["full", "incremental", "auto"], case_sensitive=False),
+              default="auto", 
+              help="Deployment mode: full (deploy all), incremental (deploy changes), auto (incremental for dev/staging, full for prod)")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option("--standardize-lakehouse-refs", is_flag=True, 
+              help="Standardize lakehouse references in notebooks before deployment")
+def deploy(workspace_id: str, source_dir: str, environment: str, dry_run: bool, deploy_mode: str, standardize_lakehouse_refs: bool, verbose: bool) -> None:
     """Deploy artifacts to Microsoft Fabric"""
+    setup_logging(verbose=verbose)
     try:
         config = DeploymentConfig(
-            workspace_id=workspace_id, source_directory=Path(source_dir), environment=environment, dry_run=dry_run
+            workspace_id=workspace_id, 
+            source_directory=Path(source_dir), 
+            environment=environment, 
+            dry_run=dry_run,
+            deploy_mode=deploy_mode,
+            standardize_lakehouse_refs=standardize_lakehouse_refs
         )
-
+        
         credential = get_azure_credential()
         deployer = FabricDeployer(config, credential)
-
         result = deployer.deploy()
 
         if result.success:
-            action = "would be deployed" if dry_run else "deployed"
-            click.echo(f"✅ Artifacts {action} successfully")
+            if dry_run:
+                if result.deployed_items == -1:
+                    click.echo(f"🔄 Dry run: Would perform full deployment ({result.deployment_mode} mode)")
+                elif result.deployed_items > 0:
+                    click.echo(f"⚡ Dry run: Would deploy {result.deployed_items} items ({result.deployment_mode} mode)")
+                else:
+                    click.echo(f"📭 Dry run: No changes detected ({result.deployment_mode} mode)")
+            else:
+                mode_info = f" ({result.deployment_mode} mode"
+                if result.deployed_items >= 0:
+                    mode_info += f", {result.deployed_items} items"
+                mode_info += ")"
+                click.echo(f"✅ Artifacts deployed successfully{mode_info}")
+            
             sys.exit(0)
         else:
-            click.echo(f"❌ Deployment failed: {result.error_message}")
+            click.echo(f"❌ {'Dry run' if dry_run else 'Deployment'} failed: {result.error_message}")
             sys.exit(1)
 
     except Exception as e:

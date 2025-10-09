@@ -1,0 +1,75 @@
+name: Simple Auto-Deploy
+
+on:
+  push:
+    branches: [main, staging, dev]
+    paths: ['fabric-artifacts/**']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: ['dev', 'staging', 'prod']
+        required: true
+      dry_run:
+        description: 'Perform dry run only'
+        type: boolean
+        default: false
+
+jobs:
+  # Simple branch-to-environment mapping without complex protection
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine deployment parameters
+        id: params
+        run: |
+          if [ "${{ inputs.environment }}" != "" ]; then
+            # Manual deployment
+            TARGET_ENV="${{ inputs.environment }}"
+            case "$TARGET_ENV" in
+              "prod")
+                WORKSPACE_ID="${{ vars.PROD_FABRIC_WORKSPACE_ID }}"
+                ;;
+              "staging") 
+                WORKSPACE_ID="${{ vars.STAGING_FABRIC_WORKSPACE_ID }}"
+                ;;
+              "dev")
+                WORKSPACE_ID="${{ vars.DEV_FABRIC_WORKSPACE_ID }}"
+                ;;
+            esac
+          else
+            # Auto deployment based on branch
+            case "${{ github.ref_name }}" in
+              "main")
+                TARGET_ENV="prod"
+                WORKSPACE_ID="${{ vars.PROD_FABRIC_WORKSPACE_ID }}"
+                ;;
+              "staging")
+                TARGET_ENV="staging"
+                WORKSPACE_ID="${{ vars.STAGING_FABRIC_WORKSPACE_ID }}"
+                ;;
+              "dev")
+                TARGET_ENV="dev"
+                WORKSPACE_ID="${{ vars.DEV_FABRIC_WORKSPACE_ID }}"
+                ;;
+            esac
+          fi
+          
+          echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
+          echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
+          echo "🎯 Deploying to: $TARGET_ENV (workspace: $WORKSPACE_ID)"
+
+  # Call the reusable workflow
+  fabric-deploy:
+    needs: deploy
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ needs.deploy.outputs.workspace_id }}
+      environment: ${{ needs.deploy.outputs.target_env }}
+      source_directory: './fabric-artifacts'
+      dry_run: ${{ inputs.dry_run || false }}
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

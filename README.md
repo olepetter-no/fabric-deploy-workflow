@@ -2,17 +2,47 @@
 
 A lightweight, reusable GitHub workflow for deploying Microsoft Fabric solutions using Python and the `fabric-cicd` library.
 
-[![CI](https://github.com/olepetter-no/fabric-deploy-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/olepetter-no/fabric-deploy-workflow/actions/workflows/ci.yml)
+[![CI](https://g# Deploy artifacts (incremental mode - only changed items)
+poetry run fabric-deploy deploy \
+  --workspace-id "your-workspace-id" \
+  --source-dir "./fabric-artifacts" \
+  --environment "dev" \
+  --deploy-mode "incremental"
+
+# Deploy artifacts (full mode - all items)
+poetry run fabric-deploy deploy \
+  --workspace-id "your-workspace-id" \
+  --source-dir "./fabric-artifacts" \
+  --environment "prod" \
+  --deploy-mode "full"
+
+# Deploy artifacts (auto mode - recommended)
+export AZURE_CLIENT_ID="your-client-id"
+export AZURE_CLIENT_SECRET="your-client-secret"  
+export AZURE_TENANT_ID="your-tenant-id"
+
+poetry run fabric-deploy deploy \
+  --workspace-id "your-workspace-id" \
+  --source-dir "./fabric-artifacts" \
+  --environment "prod"ter-no/fabric-deploy-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/olepetter-no/fabric-deploy-workflow/actions/workflows/ci.yml)
 
 ## Overview
 
-This repository provides a **GitHub Action template** that other repositories can use to deploy Microsoft Fabric artifacts (Reports, Notebooks, Lakehouses, etc.) to Fabric workspaces. The deployment logic is implemented in Python using the official [`fabric-cicd`](https://github.com/microsoft/fabric-cicd) library.
+This repository provides a **GitHub Workflow template** that other repositories can use to deploy Microsoft Fabric artifacts (Reports, Notebooks, Lakehouses, etc.) to Fabric workspaces. The deployment logic is implemented in Python using the official [`fabric-cicd`](https://github.com/microsoft/fabric-cicd) library.
+
+**Key Features:**
+- **Incremental Deployments** - Deploy only changed items for faster iterations
+- **Git-based Change Tracking** - Uses git tags to track deployment state
+- **Environment-aware Defaults** - Auto mode chooses the best deployment strategy per environment
 
 ## ✨ Features
 
-- 🚀 **Reusable GitHub Action** - Use as a workflow template in any repository
+- 🚀 **Reusable GitHub Workflow** - Use as a workflow template in any repository
+- ⚡ **Incremental Deployments** - Deploy only changed items for faster development cycles
+- 🎯 **Smart Auto Mode** - Automatically chooses incremental (dev/staging) or full (prod) deployment
+- 🔍 **Git-based Change Detection** - Uses git tags to track what's been deployed
 - 🔧 **Simple Configuration** - Just workspace ID and source directory
-- 🛡️ **Dry-run Support** - Validate deployments without making changes
+- 🛡️ **Dry-run Support** - Simulate deployment behavior without making changes
 - 📊 **Built-in Validation** - Pre-deployment validation of configuration
 - 🔐 **Secure Authentication** - Azure Service Principal integration
 - 📝 **Clear Logging** - Comprehensive deployment reporting
@@ -90,8 +120,58 @@ your-repo/
 | `fabric_workspace_id` | ✅ | - | Microsoft Fabric workspace ID (GUID) |
 | `source_directory` | ❌ | `./fabric` | Directory containing Fabric artifacts |
 | `environment` | ❌ | `dev` | Target environment (dev/staging/prod) |
-| `dry_run` | ❌ | `false` | Perform validation without deployment |
+| `dry_run` | ❌ | `false` | Simulate deployment behavior without making changes |
 | `python_version` | ❌ | `3.12` | Python version to use |
+| `deploy_mode` | ❌ | `auto` | Deployment mode: `full`, `incremental`, or `auto` |
+
+## 🎯 Deployment Modes
+
+### **Auto Mode (Recommended)** 🎯
+- **Development/Staging**: Uses incremental deployment for fast iterations
+- **Production**: Uses full deployment for reliability
+- **Initial Deployment**: Always uses full deployment regardless of environment
+
+### **Incremental Mode** ⚡
+- Deploys only items that have changed in the source directory since last deployment
+- Uses git tags (`latestDeployed/{environment}`) to track deployment state
+- Ignores changes outside the source directory (documentation, workflows, etc.)
+- Significantly faster for large repositories with many artifacts
+- Perfect for development and staging environments
+
+### **Full Mode** 🔄
+- Deploys all items regardless of changes
+- Ensures complete workspace synchronization
+- Recommended for production deployments
+- Slower but guarantees consistency
+
+## 🛡️ Dry Run Mode
+
+Dry run mode simulates deployment behavior without making actual changes. Perfect for:
+
+- **Pre-deployment Testing** - See what would be deployed
+- **Pull Request Validation** - Validate changes in CI/CD pipelines  
+- **Change Impact Analysis** - Understand deployment scope
+
+### Dry Run Output Examples
+
+```bash
+# Full deployment dry run
+🔄 Dry run: Would perform FULL deployment of all items
+📊 Dry run: Would deploy approximately 15 items from 4 categories
+🧹 Dry run: Would remove orphaned items from workspace
+🏷️  Dry run: Would update deployment tag: latestDeployed/prod
+
+# Incremental deployment dry run  
+⚡ Dry run: Would perform INCREMENTAL deployment
+📊 Dry run: Found 3 changed files since last deployment
+📊 Dry run: Mapped to 2 deployable items
+📋 Dry run: Would deploy these items:
+  ➤ Reports/SalesReport
+  ➤ Notebooks/DataProcessing
+
+# No changes dry run
+📭 Dry run: No changes detected - no deployment needed
+```
 
 ## 🏗️ Supported Fabric Items
 

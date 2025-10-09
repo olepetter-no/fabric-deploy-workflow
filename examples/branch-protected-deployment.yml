@@ -1,0 +1,160 @@
+name: Branch-Protected Fabric Deployment
+
+on:
+  push:
+    branches: [main, staging, develop]
+    paths: ['fabric-artifacts/**']
+  pull_request:
+    branches: [main, staging, develop]
+    paths: ['fabric-artifacts/**']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Override target environment'
+        type: choice
+        options: ['dev', 'staging', 'prod']
+        required: false
+      force_deploy:
+        description: 'Force deployment (bypasses branch protection)'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Perform dry run validation only'
+        type: boolean
+        default: false
+
+jobs:
+  # Job 1: Determine environment and validate branch protection
+  determine-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      target_env: ${{ steps.env.outputs.target_env }}
+      workspace_id: ${{ steps.env.outputs.workspace_id }}
+      should_deploy: ${{ steps.env.outputs.should_deploy }}
+    steps:
+      - name: Determine target environment and validate branch protection
+        id: env
+        run: |
+          # Initialize variables
+          SHOULD_DEPLOY="true"
+          
+          # Handle pull request validation
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TARGET_ENV="dev"
+            WORKSPACE_ID="${{ vars.DEV_FABRIC_WORKSPACE_ID }}"
+            echo "🔍 PR validation: will dry-run deploy to dev environment"
+            echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
+            echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Determine target environment
+          if [ "${{ inputs.environment }}" != "" ] && [ "${{ inputs.force_deploy }}" = "true" ]; then
+            # Manual override with force flag - bypasses protection
+            TARGET_ENV="${{ inputs.environment }}"
+            echo "🚨 FORCE DEPLOY: Bypassing branch protection for emergency deployment"
+          elif [ "${{ inputs.environment }}" != "" ]; then
+            # Manual override - validate branch protection rules
+            TARGET_ENV="${{ inputs.environment }}"
+            echo "🎯 Manual deployment requested: ${{ github.ref_name }} → $TARGET_ENV"
+            
+            # Validate branch protection rules
+            case "$TARGET_ENV" in
+              "prod")
+                if [ "${{ github.ref_name }}" != "main" ]; then
+                  echo "❌ BRANCH PROTECTION: Only 'main' branch can deploy to production"
+                  echo "📋 Current branch: ${{ github.ref_name }}"
+                  echo "💡 Options:"
+                  echo "   - Switch to 'main' branch and try again"
+                  echo "   - Use force_deploy=true for emergency deployment (not recommended)"
+                  echo "   - Deploy to 'dev' or 'staging' instead"
+                  SHOULD_DEPLOY="false"
+                fi
+                ;;
+              "staging")
+                if [ "${{ github.ref_name }}" != "staging" ] && [ "${{ github.ref_name }}" != "main" ]; then
+                  echo "❌ BRANCH PROTECTION: Only 'staging' or 'main' branches can deploy to staging"
+                  echo "📋 Current branch: ${{ github.ref_name }}"
+                  echo "💡 Switch to 'staging' or 'main' branch, or deploy to 'dev' instead"
+                  SHOULD_DEPLOY="false"
+                fi
+                ;;
+              "dev")
+                echo "✅ Dev deployment allowed from any branch"
+                ;;
+            esac
+          else
+            # Automatic environment mapping based on branch
+            echo "🤖 Auto-detecting environment from branch: ${{ github.ref_name }}"
+            case "${{ github.ref_name }}" in
+              "main")
+                TARGET_ENV="prod"
+                echo "✅ main branch → production environment"
+                ;;
+              "staging")
+                TARGET_ENV="staging"
+                echo "✅ staging branch → staging environment"
+                ;;
+              "develop")
+                TARGET_ENV="dev"
+                echo "✅ develop branch → dev environment"
+                ;;
+              *)
+                echo "❌ Branch '${{ github.ref_name }}' has no automatic environment mapping"
+                echo "💡 Supported auto-deploy branches: main, staging, develop"
+                echo "💡 Use manual workflow_dispatch with explicit environment for feature branches"
+                SHOULD_DEPLOY="false"
+                ;;
+            esac
+          fi
+          
+          # Exit early if deployment should not proceed
+          if [ "$SHOULD_DEPLOY" = "false" ]; then
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Set workspace ID based on environment
+          case "$TARGET_ENV" in
+            "prod")
+              WORKSPACE_ID="${{ vars.PROD_FABRIC_WORKSPACE_ID }}"
+              ;;
+            "staging")
+              WORKSPACE_ID="${{ vars.STAGING_FABRIC_WORKSPACE_ID }}"
+              ;;
+            "dev")
+              WORKSPACE_ID="${{ vars.DEV_FABRIC_WORKSPACE_ID }}"
+              ;;
+            *)
+              echo "❌ Unknown environment: $TARGET_ENV"
+              echo "✅ Supported environments: dev, staging, prod"
+              exit 1
+              ;;
+          esac
+          
+          echo "✅ Deployment approved:"
+          echo "   Branch: ${{ github.ref_name }}"
+          echo "   Environment: $TARGET_ENV"
+          echo "   Workspace: $WORKSPACE_ID"
+          echo ""
+          
+          echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
+          echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+  # Job 2: Deploy using the reusable workflow
+  deploy:
+    needs: determine-environment
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ needs.determine-environment.outputs.workspace_id }}
+      environment: ${{ needs.determine-environment.outputs.target_env }}
+      source_directory: './fabric-artifacts'
+      dry_run: ${{ github.event_name == 'pull_request' || inputs.dry_run }}
+      deploy_mode: 'auto'
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
