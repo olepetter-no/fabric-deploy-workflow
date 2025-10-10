@@ -143,7 +143,7 @@ jobs:
           echo "   Source directory: ${{ inputs.source_directory }}"
           ${{ inputs.dry_run && 'echo "   🔄 DRY RUN MODE - No changes will be made"' || '' }}
           echo ""
-          
+
           # Check current deployment state
           echo "📊 Checking current deployment state..."
           if [ "${{ inputs.update_deployment_tags }}" == "true" ]; then
@@ -158,7 +158,7 @@ jobs:
             echo "   Deployment tag tracking is disabled"
           fi
           echo ""
-          
+
           # Prepare fabric items filter
           FABRIC_ITEMS_ARGS=""
           if [ -n "${{ inputs.fabric_item_types }}" ]; then
@@ -183,7 +183,7 @@ jobs:
             ${{ inputs.standardize_lakehouse_refs && '--standardize-lakehouse-refs' || '' }} \
             ${{ inputs.update_deployment_tags && '--update-deployment-tags' || '--no-update-deployment-tags' }} \
             $FABRIC_ITEMS_ARGS
-            
+
           echo ""
           echo "✅ Deployment completed successfully"
 
@@ -191,19 +191,19 @@ jobs:
         if: ${{ !inputs.dry_run && inputs.update_deployment_tags }}
         run: |
           echo "🏷️ Updating deployment tracking tags..."
-          
+
           # Check if any deployment tags exist locally
           DEPLOYMENT_TAGS=$(git tag --list "latestDeployed/*")
-          
+
           if [ -n "$DEPLOYMENT_TAGS" ]; then
             echo "📤 Pushing deployment tags to repository:"
             echo "$DEPLOYMENT_TAGS" | sed 's/^/   /'
             echo ""
-            
+
             # Push all deployment tags
             SUCCESS_COUNT=0
             TOTAL_COUNT=$(echo "$DEPLOYMENT_TAGS" | wc -l)
-            
+
             for tag in $DEPLOYMENT_TAGS; do
               echo "📤 Pushing tag: $tag"
               # Delete remote tag if it exists (force update)
@@ -216,10 +216,10 @@ jobs:
                 echo "   ❌ Failed to push: $tag"
               fi
             done
-            
+
             echo ""
             echo "📊 Tag push summary: $SUCCESS_COUNT/$TOTAL_COUNT tags pushed successfully"
-            
+
             if [ "$SUCCESS_COUNT" -eq "$TOTAL_COUNT" ]; then
               echo "✅ All deployment tags updated successfully"
             else
@@ -238,7 +238,7 @@ jobs:
           echo "Environment: ${{ inputs.environment }}"
           echo "Deploy Mode: ${{ inputs.deploy_mode }}"
           echo "Workspace ID: ${{ inputs.fabric_workspace_id }}"
-          
+
           if [ "${{ job.status }}" == "success" ]; then
             echo "Status: ✅ SUCCESS"
             ${{ inputs.dry_run && 'echo "Note: This was a dry run - no actual changes were made"' || 'echo "Deployment completed successfully"' }}

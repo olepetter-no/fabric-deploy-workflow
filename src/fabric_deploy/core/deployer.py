@@ -36,7 +36,7 @@ class FabricDeployer:
         self.config = config
         self.credential = credential
         self.lakehouse_standardizer = LakehouseStandardizer()
-        
+
         # Initialize git operations only if needed for incremental deployments
         if self.config.update_deployment_tags:
             self.git_ops = GitOperations(self._find_git_root())
@@ -47,7 +47,7 @@ class FabricDeployer:
         """Find the git root directory - raises error if not found"""
         current = self.config.source_directory.resolve()
         self.logger.info(f"🔍 Looking for git root starting from: {current}")
-        
+
         while current != current.parent:
             self.logger.debug(f"🔍 Checking directory: {current}")
             if (current / ".git").exists():
@@ -117,7 +117,7 @@ class FabricDeployer:
         tag_name = self.git_ops.get_deployment_tag(self.config.environment)
         source_files = self.git_ops.get_changed_files_since_tag(tag_name, str(self.config.source_directory))
         changed_items = self._map_changed_files_to_items(source_files)
-        
+
         if changed_items:
             # Enable feature flags for incremental deployment
             append_feature_flag("enable_experimental_features")
@@ -146,11 +146,11 @@ class FabricDeployer:
         if not self.config.update_deployment_tags:
             self.logger.info("🏷️  Deployment tag tracking is disabled")
             return
-            
+
         # Tags enabled - create tag if deployment happened or it's a full deployment
         if deployed_items != 0 or effective_mode == DeployMode.FULL:
             tag_name = self.git_ops.get_deployment_tag(self.config.environment)
-            
+
             if self.config.dry_run:
                 self.logger.info(f"🔄 Dry run: Would update deployment tag: {tag_name}")
             else:
@@ -186,13 +186,15 @@ class FabricDeployer:
             if not self.config.update_deployment_tags:
                 # When tags are disabled, force full deployment and warn if incremental was requested
                 if self.config.deploy_mode == DeployMode.INCREMENTAL:
-                    self.logger.warning("⚠️  Incremental deployment requested but tags are disabled - using full deployment")
+                    self.logger.warning(
+                        "⚠️  Incremental deployment requested but tags are disabled - using full deployment"
+                    )
                 effective_mode = DeployMode.FULL
             else:
                 # Tags enabled: check if this is initial deployment
                 is_initial = self.git_ops.is_initial_deployment(self.config.environment)
                 effective_mode = DeployMode.FULL if is_initial else self.config.deploy_mode
-                
+
                 if is_initial:
                     self.logger.info("Initial deployment detected - using full deployment mode")
 
