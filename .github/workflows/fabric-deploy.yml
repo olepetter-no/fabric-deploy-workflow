@@ -71,6 +71,11 @@ jobs:
           repository: ${{ github.action_repository || 'olepetter-no/fabric-deploy-workflow' }}
           path: .fabric-deploy-workflow
           ref: ${{ github.action_ref || 'main' }}
+          sparse-checkout: |
+            src/
+            pyproject.toml
+            poetry.lock
+          sparse-checkout-cone-mode: false
 
       - name: Set up Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5

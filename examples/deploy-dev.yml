@@ -23,7 +23,6 @@ on:
 
 jobs:
   deploy-development:
-    environment: dev  # Use dev environment for secrets
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
       fabric_workspace_id: ${{ inputs.workspace_id }}
