@@ -3,7 +3,7 @@ name: Microsoft Fabric Deploy
 on:
   workflow_call:
     inputs:
-           - name: 🚀      - name: 📥 Checkout RepositoryInitialize Deploymentfabric_workspace_id:
+      fabric_workspace_id:
         description: 'Microsoft Fabric workspace ID'
         required: true
         type: string
@@ -67,7 +67,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: � Initialize Deployment
+      - name: 🚀 Initialize Deployment
         run: |
           echo "🚀 Microsoft Fabric Deployment Workflow"
           echo "========================================="
@@ -83,7 +83,7 @@ jobs:
           echo "========================================="
           echo ""
 
-      - name: �📥 Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
       - name: 📥 Checkout Fabric Deploy Workflow
