@@ -9,7 +9,7 @@ jobs:
   deploy-production:
     # Extra safety: ensure we're on main branch
     if: github.ref == 'refs/heads/main'
-    environment: production  # Requires approval in GitHub settings
+    environment: prod  # Requires approval in GitHub settings
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
       fabric_workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
@@ -19,6 +19,6 @@ jobs:
       standardize_lakehouse_refs: true
       fabric_item_types: ''  # Deploy all types
     secrets:
-      AZURE_CLIENT_ID: ${{ secrets.PROD_AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.PROD_AZURE_CLIENT_SECRET }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
