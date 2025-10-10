@@ -1,0 +1,32 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [stage]
+    paths: ['fabric-artifacts/**']  # Only trigger on fabric changes
+
+  workflow_dispatch:
+    inputs:
+      deploy_mode:
+        description: 'Deployment mode (override default incremental)'
+        type: choice
+        options: ['incremental', 'full']
+        default: 'incremental'
+
+jobs:
+  deploy-staging:
+    # Extra safety: ensure we're on stage branch
+    if: github.ref == 'refs/heads/stage'
+    environment: staging  # Requires approval in GitHub settings
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ vars.STAGE_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric-artifacts'
+      environment: 'stage'
+      deploy_mode: ${{ inputs.deploy_mode || 'incremental' }}  # Use input or default to incremental
+      standardize_lakehouse_refs: true
+      fabric_item_types: ''  # Deploy all types
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.STAGE_AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.STAGE_AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

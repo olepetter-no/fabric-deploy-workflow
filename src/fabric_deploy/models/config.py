@@ -24,7 +24,6 @@ FABRIC_ITEM_EXTENSIONS = [f".{item}" for item in FABRIC_ITEM_TYPES]
 class DeployMode(Enum):
     FULL = "full"
     INCREMENTAL = "incremental"
-    AUTO = "auto"
 
 
 @dataclass
@@ -35,7 +34,7 @@ class DeploymentConfig:
     source_directory: Path
     environment: str = "dev"
     dry_run: bool = False
-    deploy_mode: DeployMode = DeployMode.AUTO
+    deploy_mode: DeployMode = DeployMode.FULL
     standardize_lakehouse_refs: bool = False
     fabric_item_types: list[str] = None  # Subset of FABRIC_ITEM_TYPES to deploy
 
@@ -49,13 +48,6 @@ class DeploymentConfig:
         # Ensure deploy_mode is enum
         if isinstance(self.deploy_mode, str):
             self.deploy_mode = DeployMode(self.deploy_mode)
-
-        # Auto mode logic: incremental for dev/staging, full for prod
-        if self.deploy_mode == DeployMode.AUTO:
-            if self.environment in ["dev", "staging"]:
-                self.deploy_mode = DeployMode.INCREMENTAL
-            else:
-                self.deploy_mode = DeployMode.FULL
 
         # Set default fabric item types if not specified
         if self.fabric_item_types is None:
