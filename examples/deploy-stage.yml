@@ -17,7 +17,7 @@ jobs:
   deploy-staging:
     # Extra safety: ensure we're on stage branch
     if: github.ref == 'refs/heads/stage'
-    environment: staging  # Requires approval in GitHub settings
+    environment: stage  # Requires approval in GitHub settings
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
       fabric_workspace_id: ${{ vars.STAGE_FABRIC_WORKSPACE_ID }}
@@ -27,6 +27,6 @@ jobs:
       standardize_lakehouse_refs: true
       fabric_item_types: ''  # Deploy all types
     secrets:
-      AZURE_CLIENT_ID: ${{ secrets.STAGE_AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.STAGE_AZURE_CLIENT_SECRET }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

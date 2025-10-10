@@ -23,6 +23,7 @@ on:
 
 jobs:
   deploy-development:
+    environment: dev  # Use dev environment for secrets
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
       fabric_workspace_id: ${{ inputs.workspace_id }}
@@ -32,6 +33,6 @@ jobs:
       standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
       fabric_item_types: ${{ inputs.fabric_item_types }}
     secrets:
-      AZURE_CLIENT_ID: ${{ secrets.DEV_AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.DEV_AZURE_CLIENT_SECRET }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
