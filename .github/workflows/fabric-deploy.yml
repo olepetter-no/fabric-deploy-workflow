@@ -68,14 +68,9 @@ jobs:
       - name: Checkout fabric-deploy-workflow
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.action_repository || 'olepetter-no/fabric-deploy-workflow' }}
+          repository: olepetter-no/fabric-deploy-workflow
           path: .fabric-deploy-workflow
-          ref: ${{ github.action_ref || 'main' }}
-          sparse-checkout: |
-            src/
-            pyproject.toml
-            poetry.lock
-          sparse-checkout-cone-mode: false
+          ref: main
 
       - name: Set up Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5
@@ -97,7 +92,6 @@ jobs:
           key: venv-${{ runner.os }}-${{ inputs.python_version }}-${{ hashFiles('.fabric-deploy-workflow/poetry.lock') }}
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         working-directory: .fabric-deploy-workflow
         run: poetry install --only=main
 
@@ -106,7 +100,7 @@ jobs:
         run: |
           poetry run fabric-deploy validate \
             --workspace-id "${{ inputs.fabric_workspace_id }}" \
-            --source-dir "${{ inputs.source_directory }}" \
+            --source-dir "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}"
 
       - name: Deploy to Microsoft Fabric
@@ -126,7 +120,7 @@ jobs:
 
           poetry run fabric-deploy deploy \
             --workspace-id "${{ inputs.fabric_workspace_id }}" \
-            --source-dir "${{ inputs.source_directory }}" \
+            --source-dir "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}" \
             --deploy-mode "${{ inputs.deploy_mode }}" \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
