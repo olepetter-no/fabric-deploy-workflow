@@ -12,6 +12,10 @@ on:
         type: choice
         options: ['incremental', 'full']
         default: 'incremental'
+      update_deployment_tags:
+        description: 'Create and update deployment tags for change tracking'
+        type: boolean
+        default: true
 
 jobs:
   deploy-staging:
@@ -26,6 +30,7 @@ jobs:
       deploy_mode: ${{ inputs.deploy_mode || 'incremental' }}  # Use input or default to incremental
       standardize_lakehouse_refs: true
       fabric_item_types: ''  # Deploy all types
+      update_deployment_tags: ${{ inputs.update_deployment_tags || true }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

@@ -65,8 +65,11 @@ class GitOperations:
 
     def create_or_update_tag(self, tag_name: str, ref: str = "HEAD") -> bool:
         try:
-            # Delete tag if it exists
+            logger.info(f"🏷️  Creating/updating tag '{tag_name}' in repository: {self.repo_path}")
+
+            # Delete tag locally if it exists
             if self.tag_exists(tag_name):
+                logger.info(f"🗑️  Deleting existing local tag: {tag_name}")
                 subprocess.run(
                     ["git", "tag", "-d", tag_name],
                     cwd=self.repo_path,
@@ -74,18 +77,43 @@ class GitOperations:
                     check=True,
                 )
 
-            # Create new tag
-            subprocess.run(
+            # Create new tag locally
+            logger.info(f"✨ Creating new local tag: {tag_name} at {ref}")
+            result = subprocess.run(
                 ["git", "tag", tag_name, ref],
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
                 check=True,
             )
-            logger.info(f"Created/updated tag: {tag_name}")
-            return True
+
+            # Verify local tag was created
+            if self.tag_exists(tag_name):
+                logger.info(f"✅ Successfully created local tag: {tag_name}")
+
+                # Show tag details
+                tag_info_result = subprocess.run(
+                    ["git", "show", "--no-patch", "--format=%H %s", tag_name],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    text=True,
+                )
+                if tag_info_result.returncode == 0:
+                    logger.info(f"📋 Tag details: {tag_info_result.stdout.strip()}")
+
+                logger.info(
+                    f"� Local tag '{tag_name}' created successfully. Push to remote will be handled by workflow."
+                )
+                return True
+
+            else:
+                logger.error(f"❌ Tag creation appeared to succeed but tag not found: {tag_name}")
+                return False
+
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error creating tag {tag_name}: {e}")
+            logger.error(f"❌ Error creating tag {tag_name}: {e}")
+            logger.error(f"   stdout: {e.stdout}")
+            logger.error(f"   stderr: {e.stderr}")
             return False
 
     def is_initial_deployment(self, environment: str) -> bool:

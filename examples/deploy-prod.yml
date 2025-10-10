@@ -18,6 +18,7 @@ jobs:
       deploy_mode: 'full'
       standardize_lakehouse_refs: true
       fabric_item_types: ''  # Deploy all types
+      update_deployment_tags: true  # Production should always track deployments
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
