@@ -85,6 +85,8 @@ jobs:
 
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history and tags
 
       - name: 📥 Checkout Fabric Deploy Workflow
         uses: actions/checkout@v4
