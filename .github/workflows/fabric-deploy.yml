@@ -27,10 +27,10 @@ on:
         type: string
         default: '3.12'
       deploy_mode:
-        description: 'Deployment mode: full, incremental, or auto'
+        description: 'Deployment mode: full (deploy all) or incremental (deploy changes only)'
         required: false
         type: string
-        default: 'auto'
+        default: 'full'
       standardize_lakehouse_refs:
         description: 'Standardize lakehouse references in notebooks before deployment'
         required: false

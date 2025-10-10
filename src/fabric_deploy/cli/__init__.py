@@ -63,9 +63,9 @@ def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool
 @click.option("--dry-run", is_flag=True, help="Perform a dry run without making changes")
 @click.option(
     "--deploy-mode",
-    type=click.Choice(["full", "incremental", "auto"], case_sensitive=False),
-    default="auto",
-    help="Deployment mode: full (deploy all), incremental (deploy changes), auto (incremental for dev/staging, full for prod)",
+    type=click.Choice(["full", "incremental"], case_sensitive=False),
+    default="full",
+    help="Deployment mode: full (deploy all), incremental (deploy changes only)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option(

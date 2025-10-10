@@ -1,0 +1,37 @@
+name: Deploy to Development
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: 'Microsoft Fabric workspace ID'
+        required: true
+        type: string
+      deploy_mode:
+        description: 'Deployment mode'
+        type: choice
+        options: ['full', 'incremental']
+        default: 'full'
+      standardize_lakehouse_refs:
+        description: 'Standardize lakehouse references'
+        type: boolean
+        default: false
+      fabric_item_types:
+        description: 'Fabric items to deploy (comma-separated, e.g., "Notebook,DataPipeline")'
+        type: string
+        default: ''  # Deploy all types by default
+
+jobs:
+  deploy-development:
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ inputs.workspace_id }}
+      source_directory: './fabric-artifacts'
+      environment: 'dev'
+      deploy_mode: ${{ inputs.deploy_mode }}
+      standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      fabric_item_types: ${{ inputs.fabric_item_types }}
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.DEV_AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.DEV_AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
