@@ -1,0 +1,46 @@
+name: Multi-Environment Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: ['dev', 'staging', 'prod']
+        default: 'dev'
+      deploy_mode:
+        description: 'Deployment mode'
+        type: choice
+        options: ['auto', 'incremental', 'full']
+        default: 'auto'
+
+jobs:
+  deploy:
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ vars[format('{0}_FABRIC_WORKSPACE_ID', upper(inputs.environment))] }}
+      source_directory: './fabric-artifacts'
+      environment: ${{ inputs.environment }}
+      deploy_mode: ${{ inputs.deploy_mode }}
+      # Auto mode will use:
+      # - incremental for dev/staging
+      # - full for prod
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets[format('{0}_AZURE_CLIENT_ID', upper(inputs.environment))] }}
+      AZURE_CLIENT_SECRET: ${{ secrets[format('{0}_AZURE_CLIENT_SECRET', upper(inputs.environment))] }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+  # Optional: Deploy to staging after successful dev deployment
+  deploy-staging:
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'dev'
+    needs: deploy
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ vars.STAGING_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric-artifacts'
+      environment: 'staging'
+      deploy_mode: 'incremental'  # Use incremental for staging
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.STAGING_AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.STAGING_AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

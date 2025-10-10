@@ -14,9 +14,8 @@ on:
         default: './fabric'
       environment:
         description: 'Target environment (dev, staging, prod)'
-        required: false
+        required: true
         type: string
-        default: 'dev'
       dry_run:
         description: 'Perform a dry run without making changes'
         required: false
@@ -27,6 +26,21 @@ on:
         required: false
         type: string
         default: '3.12'
+      deploy_mode:
+        description: 'Deployment mode: full, incremental, or auto'
+        required: false
+        type: string
+        default: 'auto'
+      standardize_lakehouse_refs:
+        description: 'Standardize lakehouse references in notebooks before deployment'
+        required: false
+        type: boolean
+        default: false
+      fabric_item_types:
+        description: 'Comma-separated list of Fabric item types to deploy (default: all types)'
+        required: false
+        type: string
+        default: ''
     secrets:
       AZURE_CLIENT_ID:
         description: 'Azure Service Principal Client ID'
@@ -97,8 +111,19 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         run: |
+          FABRIC_ITEMS_ARGS=""
+          if [ -n "${{ inputs.fabric_item_types }}" ]; then
+            IFS=',' read -ra ITEMS <<< "${{ inputs.fabric_item_types }}"
+            for item in "${ITEMS[@]}"; do
+              FABRIC_ITEMS_ARGS="$FABRIC_ITEMS_ARGS --fabric-items $(echo $item | xargs)"
+            done
+          fi
+
           poetry run fabric-deploy deploy \
             --workspace-id "${{ inputs.fabric_workspace_id }}" \
             --source-dir "${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}" \
-            ${{ inputs.dry_run && '--dry-run' || '' }}
+            --deploy-mode "${{ inputs.deploy_mode }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.standardize_lakehouse_refs && '--standardize-lakehouse-refs' || '' }} \
+            $FABRIC_ITEMS_ARGS

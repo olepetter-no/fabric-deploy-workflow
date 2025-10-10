@@ -1,0 +1,51 @@
+name: Production Deployment with Approval
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_mode:
+        description: 'Deployment mode for production'
+        type: choice
+        options: ['full', 'incremental']
+        default: 'full'  # Default to full for production safety
+      standardize_lakehouse_refs:
+        description: 'Standardize lakehouse references before deployment'
+        type: boolean
+        default: true  # Recommended for production
+      fabric_item_types:
+        description: 'Fabric items to deploy (comma-separated, e.g., "Notebook,DataPipeline")'
+        type: string
+        default: ''  # Deploy all types by default
+
+jobs:
+  # Optional: Validate before deploying
+  validate-production:
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    with:
+      fabric_workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric-artifacts'
+      environment: 'prod'
+      deploy_mode: ${{ inputs.deploy_mode }}
+      standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      fabric_item_types: ${{ inputs.fabric_item_types }}
+      dry_run: true  # Validation only
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.PROD_AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.PROD_AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+  deploy-production:
+    needs: validate-production
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    environment: production  # Requires approval in GitHub settings
+    with:
+      fabric_workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric-artifacts'
+      environment: 'prod'
+      deploy_mode: ${{ inputs.deploy_mode }}
+      standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      fabric_item_types: ${{ inputs.fabric_item_types }}
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.PROD_AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.PROD_AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
