@@ -20,6 +20,10 @@ on:
         description: 'Fabric items to deploy (comma-separated, e.g., "Notebook,DataPipeline")'
         type: string
         default: ''  # Deploy all types by default
+      update_deployment_tags:
+        description: 'Create and update deployment tags for change tracking'
+        type: boolean
+        default: true
 
 jobs:
   deploy-development:
@@ -31,6 +35,7 @@ jobs:
       deploy_mode: ${{ inputs.deploy_mode }}
       standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
       fabric_item_types: ${{ inputs.fabric_item_types }}
+      update_deployment_tags: ${{ inputs.update_deployment_tags }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

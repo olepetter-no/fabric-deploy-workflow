@@ -35,14 +35,23 @@ class FabricDeployer:
         """
         self.config = config
         self.credential = credential
-        self.git_ops = GitOperations(self._find_git_root())
         self.lakehouse_standardizer = LakehouseStandardizer()
+        
+        # Initialize git operations only if needed for incremental deployments
+        if self.config.update_deployment_tags:
+            self.git_ops = GitOperations(self._find_git_root())
+        else:
+            self.git_ops = None
 
     def _find_git_root(self) -> Path:
         """Find the git root directory - raises error if not found"""
         current = self.config.source_directory.resolve()
+        self.logger.info(f"🔍 Looking for git root starting from: {current}")
+        
         while current != current.parent:
+            self.logger.debug(f"🔍 Checking directory: {current}")
             if (current / ".git").exists():
+                self.logger.info(f"✅ Found git root: {current}")
                 return current
             current = current.parent
 
@@ -104,9 +113,11 @@ class FabricDeployer:
         return -1
 
     def _handle_incremental_deployment(self, target_workspace: "FabricWorkspace") -> int:
+        # This method should only be called when git_ops is available
         tag_name = self.git_ops.get_deployment_tag(self.config.environment)
         source_files = self.git_ops.get_changed_files_since_tag(tag_name, str(self.config.source_directory))
         changed_items = self._map_changed_files_to_items(source_files)
+        
         if changed_items:
             # Enable feature flags for incremental deployment
             append_feature_flag("enable_experimental_features")
@@ -131,18 +142,24 @@ class FabricDeployer:
             self.logger.info("🧹 Removing orphaned items from workspace")
             unpublish_all_orphan_items(target_workspace)
 
-        # Update deployment tag
+        # Update deployment tag - simplified logic
+        if not self.config.update_deployment_tags:
+            self.logger.info("🏷️  Deployment tag tracking is disabled")
+            return
+            
+        # Tags enabled - create tag if deployment happened or it's a full deployment
         if deployed_items != 0 or effective_mode == DeployMode.FULL:
             tag_name = self.git_ops.get_deployment_tag(self.config.environment)
-
+            
             if self.config.dry_run:
-                self.logger.info("🔄 Dry run: Would update deployment tag")
-                return
+                self.logger.info(f"🔄 Dry run: Would update deployment tag: {tag_name}")
             else:
                 if self.git_ops.create_or_update_tag(tag_name):
                     self.logger.info(f"✅ Updated deployment tag: {tag_name}")
                 else:
                     self.logger.warning(f"⚠️  Failed to update deployment tag: {tag_name}")
+        else:
+            self.logger.info("🏷️  No deployment changes - skipping tag update")
 
     @property
     def logger(self):
@@ -165,14 +182,19 @@ class FabricDeployer:
                     self.logger.warning("⚠️  Lakehouse standardization completed with warnings")
                     # Continue deployment even if standardization has warnings
 
-            # Check if this is initial deployment
-            is_initial = self.git_ops.is_initial_deployment(self.config.environment)
-
-            # Determine effective deployment mode
-            effective_mode = DeployMode.FULL if is_initial else self.config.deploy_mode
-
-            if is_initial:
-                self.logger.info("Initial deployment detected - using full deployment mode")
+            # Determine effective deployment mode - simplified logic
+            if not self.config.update_deployment_tags:
+                # When tags are disabled, force full deployment and warn if incremental was requested
+                if self.config.deploy_mode == DeployMode.INCREMENTAL:
+                    self.logger.warning("⚠️  Incremental deployment requested but tags are disabled - using full deployment")
+                effective_mode = DeployMode.FULL
+            else:
+                # Tags enabled: check if this is initial deployment
+                is_initial = self.git_ops.is_initial_deployment(self.config.environment)
+                effective_mode = DeployMode.FULL if is_initial else self.config.deploy_mode
+                
+                if is_initial:
+                    self.logger.info("Initial deployment detected - using full deployment mode")
 
             # Create workspace for actual deployment
             target_workspace = self._create_fabric_workspace_object()

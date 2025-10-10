@@ -37,6 +37,7 @@ class DeploymentConfig:
     deploy_mode: DeployMode = DeployMode.FULL
     standardize_lakehouse_refs: bool = False
     fabric_item_types: list[str] = None  # Subset of FABRIC_ITEM_TYPES to deploy
+    update_deployment_tags: bool = True  # Create and update deployment tags
 
     def __post_init__(self):
         if isinstance(self.source_directory, str):

@@ -77,6 +77,11 @@ def validate(workspace_id: str, source_dir: str, environment: str, verbose: bool
     type=click.Choice(FABRIC_ITEM_TYPES, case_sensitive=False),
     help=f"Fabric item types to deploy (default: all). Available: {', '.join(FABRIC_ITEM_TYPES)}",
 )
+@click.option(
+    "--update-deployment-tags/--no-update-deployment-tags",
+    default=True,
+    help="Create and update deployment tags for incremental deployment tracking (default: enabled)",
+)
 def deploy(
     workspace_id: str,
     source_dir: str,
@@ -86,6 +91,7 @@ def deploy(
     standardize_lakehouse_refs: bool,
     verbose: bool,
     fabric_items: tuple[str],
+    update_deployment_tags: bool,
 ) -> None:
     """Deploy artifacts to Microsoft Fabric"""
     setup_logging(verbose=verbose)
@@ -98,6 +104,7 @@ def deploy(
             deploy_mode=deploy_mode,
             standardize_lakehouse_refs=standardize_lakehouse_refs,
             fabric_item_types=list(fabric_items) if fabric_items else None,
+            update_deployment_tags=update_deployment_tags,
         )
 
         credential = get_azure_credential()
