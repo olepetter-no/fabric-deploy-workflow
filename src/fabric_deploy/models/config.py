@@ -9,6 +9,7 @@ from enum import Enum
 
 class DeployMode(Enum):
     """Deployment mode options."""
+
     FULL = "full"
     INCREMENTAL = "incremental"
 
@@ -48,4 +49,3 @@ class DeploymentConfig:
                 raise ValueError(f"Invalid deploy mode: {self.deploy_mode}")
 
         self.environment = self.environment.lower()
-

@@ -7,7 +7,7 @@ This folder shows how to use the **fabric-deploy-workflow** for Microsoft Fabric
 ## Example Workflows
 
 ### 🧱 Development – `deploy-dev.yml`
-Manual deployment to a dev workspace.  
+Manual deployment to a dev workspace.
 Supports:
 - `deploy_mode` (full/incremental)
 - Optional lakehouse standardization
@@ -18,8 +18,8 @@ Supports:
 ---
 
 ### 🧪 Staging – `deploy-stage.yml`
-Automatic deployment on push to the `stage` branch.  
-Defaults to incremental mode for speed.  
+Automatic deployment on push to the `stage` branch.
+Defaults to incremental mode for speed.
 Requires environment approval (if configured).
 
 **Use:** Continuous delivery to a staging workspace.
@@ -27,8 +27,8 @@ Requires environment approval (if configured).
 ---
 
 ### 🚀 Production – `deploy-prod.yml`
-Manual, protected workflow for production.  
-Only runs on the `main` branch.  
+Manual, protected workflow for production.
+Only runs on the `main` branch.
 Always performs full deployments with lakehouse standardization.
 
 **Use:** Controlled, auditable production releases.
@@ -77,12 +77,12 @@ It handles:
 
 ## Tips
 
-- Use **incremental** for dev/stage, **full** for prod.  
-- Keep `update_deployment_tag` enabled for incremental tracking.  
-- Require **manual approval** for production environments.  
+- Use **incremental** for dev/stage, **full** for prod.
+- Keep `update_deployment_tag` enabled for incremental tracking.
+- Require **manual approval** for production environments.
 - Pin to a release tag (e.g. `@v1.0.0`) for stable builds.
 
 ---
 
-**Result:**  
+**Result:**
 A simple, reusable deployment pipeline — fast for dev, safe for prod.

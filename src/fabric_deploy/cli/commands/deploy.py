@@ -11,7 +11,6 @@ from ...core import lakehouse as lakehouse_core
 from ...utils.logging import setup_logging
 
 
-
 @click.command(help="Deploy artifacts to Microsoft Fabric.")
 @click.option("--fabric-workspace-id", "workspace_id", required=True, help="Microsoft Fabric Workspace ID")
 @click.option(

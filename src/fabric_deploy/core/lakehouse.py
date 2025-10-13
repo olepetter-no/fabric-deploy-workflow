@@ -64,14 +64,13 @@ def _process_file(file_path: pathlib.Path, patterns, scan_pattern) -> None:
 def _get_patterns():
     """Precompiled regex patterns for replacing lakehouse references."""
     patterns = [
-        (re.compile(r'"default_lakehouse":\s*"([0-9a-fA-F-]{36})"'),
-         '"default_lakehouse": "REPLACEME_LAKEHOUSE"'),
-        (re.compile(r'"default_lakehouse_name":\s*"[^"]+"'),
-         '"default_lakehouse_name": "REPLACEME_LAKEHOUSE_NAME"'),
-        (re.compile(r'"default_lakehouse_workspace_id":\s*"([0-9a-fA-F-]{36})"'),
-         '"default_lakehouse_workspace_id": "REPLACEME_WORKSPACE_ID"'),
-        (re.compile(r'"lakehouse_id":\s*"([0-9a-fA-F-]{36})"'),
-         '"lakehouse_id": "REPLACEME_LAKEHOUSE"'),
+        (re.compile(r'"default_lakehouse":\s*"([0-9a-fA-F-]{36})"'), '"default_lakehouse": "REPLACEME_LAKEHOUSE"'),
+        (re.compile(r'"default_lakehouse_name":\s*"[^"]+"'), '"default_lakehouse_name": "REPLACEME_LAKEHOUSE_NAME"'),
+        (
+            re.compile(r'"default_lakehouse_workspace_id":\s*"([0-9a-fA-F-]{36})"'),
+            '"default_lakehouse_workspace_id": "REPLACEME_WORKSPACE_ID"',
+        ),
+        (re.compile(r'"lakehouse_id":\s*"([0-9a-fA-F-]{36})"'), '"lakehouse_id": "REPLACEME_LAKEHOUSE"'),
     ]
     scan_pattern = re.compile(r'"(default_)?lakehouse(_name|_workspace_id|_id)?":\s*"', re.IGNORECASE)
     return patterns, scan_pattern
