@@ -3,8 +3,8 @@ name: Deploy to Staging
 on:
   push:
     branches: [stage]
-    paths: ['fabric-artifacts/**']  # Only trigger on fabric changes
-
+    paths:
+      - 'fabric/**'              # adjust to match your real artifact dir
   workflow_dispatch:
     inputs:
       deploy_mode:
@@ -12,25 +12,29 @@ on:
         type: choice
         options: ['incremental', 'full']
         default: 'incremental'
-      update_deployment_tags:
-        description: 'Create and update deployment tags for change tracking'
+      update_deployment_tag:
+        description: 'Create/update deployment tags for change tracking'
+        type: boolean
+        default: true
+      standardize_lakehouse_refs:
+        description: 'Standardize lakehouse references'
         type: boolean
         default: true
 
 jobs:
   deploy-staging:
-    # Extra safety: ensure we're on stage branch
+    # Safety: only run when the ref is stage
     if: github.ref == 'refs/heads/stage'
-    environment: stage  # Requires approval in GitHub settings
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    environment: stage
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
     with:
       fabric_workspace_id: ${{ vars.STAGE_FABRIC_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
+      source_directory: './fabric'                             # keep consistent with push paths
       environment: 'stage'
-      deploy_mode: ${{ inputs.deploy_mode || 'incremental' }}  # Use input or default to incremental
-      standardize_lakehouse_refs: true
-      fabric_item_types: ''  # Deploy all types
-      update_deployment_tags: ${{ inputs.update_deployment_tags || true }}
+      # Default to incremental on push; allow override when manually dispatched
+      deploy_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_mode || 'incremental' }}
+      standardize_lakehouse_refs: ${{ github.event_name == 'workflow_dispatch' && inputs.standardize_lakehouse_refs || true }}
+      update_deployment_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.update_deployment_tag || true }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

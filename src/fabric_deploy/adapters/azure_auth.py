@@ -1,7 +1,3 @@
-"""
-Azure authentication utilities
-"""
-
 import os
 import logging
 

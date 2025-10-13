@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 import logging
 
-from ..core.deployer import FabricDeployer
-from ..core.validator import FabricValidator
+from ..coreV2.deployer import FabricDeployer
+from ..coreV2.validator import FabricValidator
 from ..models.config import DeploymentConfig, FABRIC_ITEM_TYPES
 from ..utils.logging import setup_logging
 from ..utils.auth import get_azure_credential

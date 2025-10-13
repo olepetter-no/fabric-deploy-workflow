@@ -8,12 +8,12 @@ on:
         required: true
         type: string
       source_directory:
-        description: 'Directory containing Fabric artifacts to deploy'
+        description: 'Directory with Fabric artifacts to deploy'
         required: false
         type: string
         default: './fabric'
       environment:
-        description: 'Target environment (dev, staging, prod)'
+        description: 'Target environment (dev|staging|prod)'
         required: true
         type: string
       dry_run:
@@ -27,34 +27,26 @@ on:
         type: string
         default: '3.12'
       deploy_mode:
-        description: 'Deployment mode: full (deploy all) or incremental (deploy changes only)'
+        description: 'Deployment mode'
         required: false
         type: string
         default: 'full'
       standardize_lakehouse_refs:
-        description: 'Standardize lakehouse references in notebooks before deployment'
+        description: 'Standardize lakehouse references before deployment'
         required: false
         type: boolean
         default: false
-      fabric_item_types:
-        description: 'Comma-separated list of Fabric item types to deploy (default: all types)'
-        required: false
-        type: string
-        default: ''
-      update_deployment_tags:
-        description: 'Create and update deployment tags for incremental deployment tracking'
+      update_deployment_tag:
+        description: 'Create/update deployment tag for incremental tracking'
         required: false
         type: boolean
         default: true
     secrets:
       AZURE_CLIENT_ID:
-        description: 'Azure Service Principal Client ID'
         required: true
       AZURE_CLIENT_SECRET:
-        description: 'Azure Service Principal Client Secret'
         required: true
       AZURE_TENANT_ID:
-        description: 'Azure Tenant ID'
         required: true
 
 jobs:
@@ -63,39 +55,22 @@ jobs:
     environment: ${{ inputs.environment }}
 
     permissions:
-      contents: write  # Required to push git tags back to repository
-      id-token: write
+      contents: write  # needed to push tags
 
     steps:
-      - name: 🚀 Initialize Deployment
-        run: |
-          echo "🚀 Microsoft Fabric Deployment Workflow"
-          echo "========================================="
-          echo "Environment: ${{ inputs.environment }}"
-          echo "Deploy Mode: ${{ inputs.deploy_mode }}"
-          echo "Source Directory: ${{ inputs.source_directory }}"
-          echo "Workspace ID: ${{ inputs.fabric_workspace_id }}"
-          echo "Python Version: ${{ inputs.python_version }}"
-          ${{ inputs.dry_run && 'echo "Mode: 🔄 DRY RUN (no changes will be made)"' || 'echo "Mode: ✅ LIVE DEPLOYMENT"' }}
-          ${{ inputs.fabric_item_types != '' && format('echo "Item Types: {0}"', inputs.fabric_item_types) || 'echo "Item Types: All supported types"' }}
-          ${{ inputs.standardize_lakehouse_refs && 'echo "Lakehouse Refs: ✅ Will be standardized"' || 'echo "Lakehouse Refs: ➖ No standardization"' }}
-          ${{ inputs.update_deployment_tags && 'echo "Deployment Tags: ✅ Will be created/updated"' || 'echo "Deployment Tags: ➖ Disabled"' }}
-          echo "========================================="
-          echo ""
-
-      - name: 📥 Checkout Repository
+      - name: 📥 Checkout repository (app/artifacts)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history and tags
+          fetch-depth: 0
 
-      - name: 📥 Checkout Fabric Deploy Workflow
+      - name: 📥 Checkout fabric-deploy workflow repo
         uses: actions/checkout@v4
         with:
           repository: olepetter-no/fabric-deploy-workflow
           path: .fabric-deploy-workflow
           ref: main
 
-      - name: 🐍 Set up Python ${{ inputs.python_version }}
+      - name: 🐍 Setup Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python_version }}
@@ -107,29 +82,32 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      - name: 💾 Load Cached Dependencies
-        id: cached-poetry-dependencies
+      - name: 💾 Cache Poetry venv
+        id: cache-venv
         uses: actions/cache@v4
         with:
           path: .fabric-deploy-workflow/.venv
           key: venv-${{ runner.os }}-${{ inputs.python_version }}-${{ hashFiles('.fabric-deploy-workflow/poetry.lock') }}
 
-      - name: 📦 Install Dependencies
+      - name: 📦 Install dependencies
         working-directory: .fabric-deploy-workflow
         run: |
-          echo "📦 Installing fabric-deploy dependencies..."
-          poetry install --only=main
-          echo "✅ Dependencies installed successfully"
+          poetry install --only main --no-interaction --no-ansi
 
-      - name: 📋 Validate Configuration
+      - name: 🔍 Validate configuration
         working-directory: .fabric-deploy-workflow
         run: |
-          echo "🔍 Validating deployment configuration..."
-          poetry run fabric-deploy validate \
-            --workspace-id "${{ inputs.fabric_workspace_id }}" \
-            --source-dir "../${{ inputs.source_directory }}" \
+          echo "Validating configuration..."
+          poetry run python -m fabric_deploy validate \
+            --fabric-workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --source-directory "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}"
-          echo "✅ Configuration validation completed"
+
+      - name: ⚙️ Configure git identity (for tag pushes)
+        if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: 🚀 Deploy to Microsoft Fabric
         working-directory: .fabric-deploy-workflow
@@ -138,114 +116,34 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         run: |
-          echo "🚀 Starting deployment to Microsoft Fabric..."
-          echo "   Environment: ${{ inputs.environment }}"
-          echo "   Deploy mode: ${{ inputs.deploy_mode }}"
-          echo "   Workspace ID: ${{ inputs.fabric_workspace_id }}"
-          echo "   Source directory: ${{ inputs.source_directory }}"
-          ${{ inputs.dry_run && 'echo "   🔄 DRY RUN MODE - No changes will be made"' || '' }}
-          echo ""
-
-          # Check current deployment state
-          echo "📊 Checking current deployment state..."
-          if [ "${{ inputs.update_deployment_tags }}" == "true" ]; then
-            EXISTING_TAGS=$(git -C ../ tag --list "latestDeployed/*" | wc -l)
-            if [ "$EXISTING_TAGS" -gt 0 ]; then
-              echo "   Found existing deployment tags:"
-              git -C ../ tag --list "latestDeployed/*" | sed 's/^/     /'
-            else
-              echo "   No previous deployment tags found (first deployment)"
-            fi
-          else
-            echo "   Deployment tag tracking is disabled"
-          fi
-          echo ""
-
-          # Prepare fabric items filter
-          FABRIC_ITEMS_ARGS=""
-          if [ -n "${{ inputs.fabric_item_types }}" ]; then
-            echo "🎯 Filtering deployment to specific item types: ${{ inputs.fabric_item_types }}"
-            IFS=',' read -ra ITEMS <<< "${{ inputs.fabric_item_types }}"
-            for item in "${ITEMS[@]}"; do
-              FABRIC_ITEMS_ARGS="$FABRIC_ITEMS_ARGS --fabric-items $(echo $item | xargs)"
-            done
-          else
-            echo "📦 Deploying all supported Fabric item types"
-          fi
-          echo ""
-
-          # Execute deployment
-          echo "🔄 Executing deployment..."
-          poetry run fabric-deploy deploy \
-            --workspace-id "${{ inputs.fabric_workspace_id }}" \
-            --source-dir "../${{ inputs.source_directory }}" \
+          echo "Deploying (mode=${{ inputs.deploy_mode }}, env=${{ inputs.environment }})"
+          poetry run python -m fabric_deploy deploy \
+            --fabric-workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --source-directory "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}" \
             --deploy-mode "${{ inputs.deploy_mode }}" \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
             ${{ inputs.standardize_lakehouse_refs && '--standardize-lakehouse-refs' || '' }} \
-            ${{ inputs.update_deployment_tags && '--update-deployment-tags' || '--no-update-deployment-tags' }} \
-            $FABRIC_ITEMS_ARGS
+            ${{ inputs.update_deployment_tag && '--update-deployment-tags' || '--no-update-deployment-tags' }}
 
-          echo ""
-          echo "✅ Deployment completed successfully"
-
-      - name: 🏷️ Update Deployment Tags
-        if: ${{ !inputs.dry_run && inputs.update_deployment_tags }}
+      - name: 🏷️ Push deployment tags
+        if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}
         run: |
-          echo "🏷️ Updating deployment tracking tags..."
-
-          # Check if any deployment tags exist locally
-          DEPLOYMENT_TAGS=$(git tag --list "latestDeployed/*")
-
-          if [ -n "$DEPLOYMENT_TAGS" ]; then
-            echo "📤 Pushing deployment tags to repository:"
-            echo "$DEPLOYMENT_TAGS" | sed 's/^/   /'
-            echo ""
-
-            # Push all deployment tags
-            SUCCESS_COUNT=0
-            TOTAL_COUNT=$(echo "$DEPLOYMENT_TAGS" | wc -l)
-
-            for tag in $DEPLOYMENT_TAGS; do
-              echo "📤 Pushing tag: $tag"
-              # Delete remote tag if it exists (force update)
-              git push origin ":refs/tags/$tag" 2>/dev/null || true
-              # Push new tag
-              if git push origin "$tag" 2>/dev/null; then
-                echo "   ✅ Successfully pushed: $tag"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "   ❌ Failed to push: $tag"
-              fi
-            done
-
-            echo ""
-            echo "📊 Tag push summary: $SUCCESS_COUNT/$TOTAL_COUNT tags pushed successfully"
-
-            if [ "$SUCCESS_COUNT" -eq "$TOTAL_COUNT" ]; then
-              echo "✅ All deployment tags updated successfully"
-            else
-              echo "⚠️ Some tags failed to push - incremental deployments may not work correctly"
-            fi
-          else
-            echo "📭 No deployment tags found - no tags to push"
+          # Push all latestDeployed/* tags (created by the CLI in the main repo)
+          TAGS="$(git tag --list 'latestDeployed/*')"
+          if [ -z "$TAGS" ]; then
+            echo "No deployment tags to push."
+            exit 0
           fi
 
-      - name: 🎉 Deployment Summary
+          echo "Pushing deployment tags..."
+          while IFS= read -r tag; do
+            # Replace remote tag (force-update)
+            git push origin ":refs/tags/$tag" >/dev/null 2>&1 || true
+            git push origin "$tag"
+          done <<< "$TAGS"
+
+      - name: ✅ Summary
         if: always()
         run: |
-          echo ""
-          echo "🎉 Microsoft Fabric Deployment Complete"
-          echo "========================================"
-          echo "Environment: ${{ inputs.environment }}"
-          echo "Deploy Mode: ${{ inputs.deploy_mode }}"
-          echo "Workspace ID: ${{ inputs.fabric_workspace_id }}"
-
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "Status: ✅ SUCCESS"
-            ${{ inputs.dry_run && 'echo "Note: This was a dry run - no actual changes were made"' || 'echo "Deployment completed successfully"' }}
-          else
-            echo "Status: ❌ FAILED"
-            echo "Check the logs above for error details"
-          fi
-          echo "========================================"
+          echo "Fabric deploy :: env=${{ inputs.environment }} mode=${{ inputs.deploy_mode }} dry_run=${{ inputs.dry_run }}"
