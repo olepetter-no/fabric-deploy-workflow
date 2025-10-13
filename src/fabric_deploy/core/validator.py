@@ -1,9 +1,3 @@
-"""
-Validation module for Microsoft Fabric deployments
-
-Validates basic configuration and directory structure before deployment.
-"""
-
 import logging
 import re
 
@@ -11,7 +5,6 @@ from ..models.config import DeploymentConfig
 
 
 class FabricValidator:
-    """Simple validator for Fabric deployment configuration"""
 
     def __init__(self, config: DeploymentConfig):
         self.config = config
