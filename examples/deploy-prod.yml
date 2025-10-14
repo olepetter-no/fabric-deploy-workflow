@@ -9,14 +9,21 @@ jobs:
     # Extra safety: only run when the ref is main
     if: github.ref == 'refs/heads/main'
     environment: prod
+    permissions:
+      contents: write  # Required for pushing git tags
+      id-token: write  # Required for Azure authentication
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
     with:
-      fabric_workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
+      workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
       source_directory: './fabric'
       environment: 'prod'
-      deploy_mode: 'full'                  # prod: explicit full deploy
-      standardize_lakehouse_refs: true     # enforce standardization in prod
-      update_deployment_tag: true          # prod should always track deployments
+      deploy_mode: 'full'                       # prod: explicit full deploy
+      unpublish_orphan_items: true             # clean up orphaned items in prod
+      standardize_default_lakehouse:
+        description: 'Standardize default lakehouse references'
+        type: boolean
+        default: true
+      update_deployment_tag: true              # prod should always track deployments
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

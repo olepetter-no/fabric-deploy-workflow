@@ -12,11 +12,36 @@ class GitOperations:
     def __init__(self, repo_path: Path):
         self.repo_path = Path(repo_path)
 
+    @staticmethod
+    def is_within_repo(path: str | Path) -> bool:
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=Path(path).resolve(),
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Git command failed: {e.stderr.strip() or 'unknown error'}")
+            if e.returncode == 128:
+                return False
+            raise RuntimeError(f"Git error (code {e.returncode}): {e.stderr.strip() or 'unknown error'}") from e
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error while checking git repo: {e}") from e
+
     def get_deployment_tag(self, environment: str) -> str:
         return f"latestDeployed/{environment}"
 
     def tag_exists(self, tag: str) -> bool:
-        cp = self._run(["git", "rev-parse", "--verify", f"refs/tags/{tag}"], capture_output=True, text=True)
+        cp = self._run(
+            ["git", "rev-parse", "--verify", f"refs/tags/{tag}"],
+            capture_output=True,
+            text=True,
+            allow_fail=True,  # allow exit 128
+        )
         return cp.returncode == 0
 
     def get_changed_files_since_tag(self, tag: str, source_dir: str) -> List[str]:
@@ -47,7 +72,7 @@ class GitOperations:
     def is_initial_deployment(self, environment: str) -> bool:
         return not self.tag_exists(self.get_deployment_tag(environment))
 
-    def _run(self, args, *, capture_output=False, text=None) -> subprocess.CompletedProcess:
+    def _run(self, args, *, capture_output=False, text=None, allow_fail=False) -> subprocess.CompletedProcess:
         try:
             cp = subprocess.run(
                 args,
@@ -57,8 +82,8 @@ class GitOperations:
                 check=False,
             )
         except Exception as e:
-            raise RuntimeError(f"Git exec failed: {' '.join(args)} ({e})")
+            raise RuntimeError(f"Git exec failed: {' '.join(args)} ({e})") from e
 
-        if cp.returncode != 0:
+        if cp.returncode != 0 and not allow_fail:
             raise RuntimeError(f"Git failed ({cp.returncode}): {' '.join(args)}")
         return cp

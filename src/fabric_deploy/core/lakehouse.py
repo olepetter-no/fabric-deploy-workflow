@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def apply(source_root: pathlib.Path) -> None:
     """
-    Standardize lakehouse references in all notebooks under source_root.
+    Standardize default lakehouse references in all notebooks under source_root.
 
     Replaces IDs, workspace IDs, and names with placeholders:
       - REPLACEME_LAKEHOUSE

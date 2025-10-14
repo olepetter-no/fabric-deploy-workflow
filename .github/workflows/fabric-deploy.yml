@@ -3,7 +3,7 @@ name: Microsoft Fabric Deploy
 on:
   workflow_call:
     inputs:
-      fabric_workspace_id:
+      workspace_id:
         description: 'Microsoft Fabric workspace ID'
         required: true
         type: string
@@ -16,31 +16,36 @@ on:
         description: 'Target environment (dev|staging|prod)'
         required: true
         type: string
-      dry_run:
-        description: 'Perform a dry run without making changes'
-        required: false
-        type: boolean
-        default: false
-      python_version:
-        description: 'Python version to use'
-        required: false
-        type: string
-        default: '3.12'
       deploy_mode:
         description: 'Deployment mode'
         required: false
         type: string
         default: 'full'
-      standardize_lakehouse_refs:
-        description: 'Standardize lakehouse references before deployment'
+      unpublish_orphan_items:
+        description: 'Unpublish orphan items from the workspace'
         required: false
         type: boolean
-        default: false
+        default: true
+      standardize_default_lakehouse:
+        description: 'Standardize default lakehouse references before deployment'
+        required: false
+        type: boolean
+        default: true
       update_deployment_tag:
         description: 'Create/update deployment tag for incremental tracking'
         required: false
         type: boolean
         default: true
+      dry_run:
+        description: 'Perform a dry run without making changes'
+        required: false
+        type: boolean
+        default: false
+      verbose:
+        description: 'Enable verbose (debug-level) output.'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AZURE_CLIENT_ID:
         required: true
@@ -70,10 +75,10 @@ jobs:
           path: .fabric-deploy-workflow
           ref: main
 
-      - name: 🐍 Setup Python ${{ inputs.python_version }}
+      - name: 🐍 Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ inputs.python_version }}
+          python-version: '3.12'
 
       - name: 📝 Install Poetry
         uses: snok/install-poetry@v1
@@ -99,7 +104,7 @@ jobs:
         run: |
           echo "Validating configuration..."
           poetry run python -m fabric_deploy validate \
-            --fabric-workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --workspace-id "${{ inputs.workspace_id }}" \
             --source-directory "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}"
 
@@ -118,13 +123,15 @@ jobs:
         run: |
           echo "Deploying (mode=${{ inputs.deploy_mode }}, env=${{ inputs.environment }})"
           poetry run python -m fabric_deploy deploy \
-            --fabric-workspace-id "${{ inputs.fabric_workspace_id }}" \
+            --workspace-id "${{ inputs.workspace_id }}" \
             --source-directory "../${{ inputs.source_directory }}" \
             --environment "${{ inputs.environment }}" \
             --deploy-mode "${{ inputs.deploy_mode }}" \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.standardize_lakehouse_refs && '--standardize-lakehouse-refs' || '' }} \
-            ${{ inputs.update_deployment_tag && '--update-deployment-tags' || '--no-update-deployment-tags' }}
+            ${{ inputs.unpublish_orphan_items && '--unpublish-orphan-items' || '' }} \
+            ${{ inputs.standardize_default_lakehouse && '--standardize-default-lakehouse' || '' }} \
+            ${{ inputs.update_deployment_tag && '--update-deployment-tag' || '--no-update-deployment-tag' }} \
+            ${{ inputs.verbose && '--verbose' || '' }}
 
       - name: 🏷️ Push deployment tags
         if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}

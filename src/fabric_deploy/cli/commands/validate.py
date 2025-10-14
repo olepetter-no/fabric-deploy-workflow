@@ -8,7 +8,7 @@ from ...utils.logging import setup_logging
 
 
 @click.command(help="Validate deployment configuration and artifacts.")
-@click.option("--fabric-workspace-id", "workspace_id", required=True, help="Microsoft Fabric workspace ID")
+@click.option("--workspace-id", "workspace_id", required=True, help="Microsoft Fabric workspace ID")
 @click.option(
     "--source-directory",
     default="./fabric",
@@ -16,9 +16,15 @@ from ...utils.logging import setup_logging
     help="Directory containing Fabric artifacts (must be in a git repo)",
 )
 @click.option("--environment", required=True, help="Target environment (dev|staging|prod)")
-def cmd(workspace_id, source_directory, environment):
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose (debug-level) output.",
+)
+def cmd(workspace_id, source_directory, environment, verbose):
     """Thin wrapper around core.validate.run()."""
-    setup_logging(verbose=False)
+    setup_logging(verbose=verbose)
 
     try:
         ok = validate_core.run(

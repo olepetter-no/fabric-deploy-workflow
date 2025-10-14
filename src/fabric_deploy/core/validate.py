@@ -7,6 +7,7 @@ Performs lightweight validation of deployment configuration and source artifacts
 import logging
 from pathlib import Path
 from ..models.config import DeploymentConfig
+from ..adapters.git_ops import GitOperations
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,8 @@ def run(workspace_id: str, source_directory: Path, environment: str) -> bool:
             environment=environment,
         )
 
-        # Let DeploymentConfig handle internal validation (__post_init__)
-        _check_source_structure(cfg.source_directory)
+        if not GitOperations.is_within_repo(source_directory):
+            raise ValueError(f"No Git repository found for source directory: '{source_directory}'")
 
         logger.info("✅ Validation succeeded")
         return True

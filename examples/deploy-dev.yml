@@ -12,26 +12,40 @@ on:
         type: choice
         options: ['full', 'incremental']
         default: 'full'
-      standardize_lakehouse_refs:
-        description: 'Standardize lakehouse references'
+      unpublish_orphan_items:
+        description: 'Unpublish orphan items from the workspace'
         type: boolean
-        default: false
+        default: true
+      standardize_default_lakehouse:
+        description: 'Standardize default lakehouse references'
+        type: boolean
+        default: true
       update_deployment_tag:
         description: 'Create/update deployment tags for change tracking'
         type: boolean
         default: true
+      verbose:
+        description: 'Enable verbose (debug-level) output.'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy-development:
+    permissions:
+      contents: write  # Required for pushing git tags
+      id-token: write  # Required for Azure authentication
     # 🔒 Pin to a release tag (recommended), or a commit SHA
     uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
     with:
-      fabric_workspace_id: ${{ inputs.workspace_id }}
+      workspace_id: ${{ inputs.workspace_id }}
       source_directory: './fabric-artifacts'   # path in THIS repo
       environment: 'dev'
       deploy_mode: ${{ inputs.deploy_mode }}
-      standardize_lakehouse_refs: ${{ inputs.standardize_lakehouse_refs }}
+      unpublish_orphan_items: ${{ inputs.unpublish_orphan_items }}
+      standardize_default_lakehouse: ${{ inputs.standardize_default_lakehouse }}
       update_deployment_tag: ${{ inputs.update_deployment_tag }}
+      verbose: ${{ inputs.verbose }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

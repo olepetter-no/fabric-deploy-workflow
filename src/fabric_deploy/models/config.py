@@ -2,6 +2,8 @@
 Deployment configuration model
 """
 
+import re
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
@@ -12,6 +14,9 @@ class DeployMode(Enum):
 
     FULL = "full"
     INCREMENTAL = "incremental"
+
+
+_GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$")
 
 
 @dataclass
@@ -36,11 +41,11 @@ class DeploymentConfig:
         if not isinstance(self.source_directory, Path):
             self.source_directory = Path(self.source_directory)
 
-        if not self.workspace_id or not isinstance(self.workspace_id, str):
-            raise ValueError("workspace_id must be a non-empty string")
+        if not isinstance(self.workspace_id, str) or not _GUID_RE.match(self.workspace_id):
+            raise ValueError("workspace_id must be a valid GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
 
-        if not self.source_directory.exists():
-            raise ValueError(f"Source directory does not exist: {self.source_directory}")
+        if not self.source_directory.exists() or not self.source_directory.is_dir():
+            raise ValueError(f"Source directory does not exist or is not a directory: {self.source_directory}")
 
         if not isinstance(self.deploy_mode, DeployMode):
             try:
