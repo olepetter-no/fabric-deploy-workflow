@@ -18,12 +18,9 @@ jobs:
       source_directory: './fabric'
       environment: 'prod'
       deploy_mode: 'full'                       # prod: explicit full deploy
-      unpublish_orphan_items: true             # clean up orphaned items in prod
-      standardize_default_lakehouse:
-        description: 'Standardize default lakehouse references'
-        type: boolean
-        default: true
-      update_deployment_tag: true              # prod should always track deployments
+      unpublish_orphan_items: true              # clean up orphaned items in prod
+      standardize_default_lakehouse: true       # prod should always standardize default lakehoues
+      update_deployment_tag: true               # prod should always track deployments
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

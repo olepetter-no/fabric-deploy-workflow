@@ -24,6 +24,11 @@ on:
         description: 'Create/update deployment tags for change tracking'
         type: boolean
         default: true
+      dry_run:
+        description: 'Perform a dry run without making changes'
+        required: false
+        type: boolean
+        default: false
       verbose:
         description: 'Enable verbose (debug-level) output.'
         required: false
