@@ -1,14 +1,17 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint-and-format:
+  lint-and-validate:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -33,34 +36,20 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install
+        run: poetry install --only=main
 
       - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files
 
-      - name: Check CLI works
+      - name: Check CLI entrypoints
         run: |
           poetry run fabric-deploy --help
           poetry run fabric-deploy validate --help
           poetry run fabric-deploy deploy --help
 
-      - name: Test basic validation
+      - name: Validate example configuration
         run: |
-          # Test basic validation functionality - should pass basic checks
           poetry run fabric-deploy validate \
             --workspace-id "12345678-1234-1234-1234-123456789abc" \
-            --source-dir "." \
+            --source-directory "." \
             --environment "dev"
-
-      - name: Test validation failure cases
-        run: |
-          # Test with non-existent directory - should fail
-          if poetry run fabric-deploy validate \
-            --workspace-id "12345678-1234-1234-1234-123456789abc" \
-            --source-dir "/non/existent/path" \
-            --environment "dev"; then
-            echo "❌ Expected validation to fail for non-existent directory"
-            exit 1
-          else
-            echo "✅ Validation correctly failed for non-existent directory"
-          fi

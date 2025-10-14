@@ -1,242 +1,162 @@
 # fabric-deploy-workflow
 
-A lightweight, reusable GitHub workflow for deploying Microsoft Fabric solutions using Python and the `fabric-cicd` library.
+A reusable GitHub workflow for deploying Microsoft Fabric solutions with incremental change tracking and environment isolation.
 
 [![CI](https://github.com/olepetter-no/fabric-deploy-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/olepetter-no/fabric-deploy-workflow/actions/workflows/ci.yml)
 
-## Overview
-
-This repository provides a **GitHub Workflow template** for deploying Microsoft Fabric artifacts (Reports, Notebooks, Lakehouses, etc.) to Fabric workspaces. Built on the official [`fabric-cicd`](https://github.com/microsoft/fabric-cicd) library.
-
-**Key Features:**
-- 🚀 **Incremental Deployments** - Deploy only changed items for faster iterations
-- 🎯 **Smart Auto Mode** - Environment-aware deployment strategy selection
-- 🔍 **Git-based Change Tracking** - Uses git tags to track deployment state
-- 🛡️ **Dry-run Support** - Preview deployments without making changes
-- 🎛️ **Selective Deployment** - Choose specific Fabric item types to deploy
+---
 
 ## 🚀 Quick Start
 
-### 1. Create Workflow File
-
-Create `.github/workflows/fabric-deploy.yml` in your repository:
+Reference this workflow in your repository to deploy Fabric artifacts like Reports, Notebooks, Lakehouses, and Pipelines:
 
 ```yaml
-name: Deploy to Microsoft Fabric
+# .github/workflows/deploy-dev.yml
+name: Deploy to Development
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
-        type: choice
-        options: ['dev', 'staging', 'prod']
-        default: 'dev'
-      dry_run:
-        description: 'Perform dry run'
-        type: boolean
-        default: false
+      workspace_id:
+        description: 'Microsoft Fabric workspace ID'
+        required: true
+        type: string
 
 jobs:
   deploy:
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1
     with:
-      fabric_workspace_id: ${{ vars.FABRIC_WORKSPACE_ID }}
+      workspace_id: ${{ inputs.workspace_id }}
       source_directory: './fabric-artifacts'
-      environment: ${{ inputs.environment }}
-      dry_run: ${{ inputs.dry_run }}
+      environment: 'dev'
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 ```
 
-### 2. Setup Repository Structure
+---
 
-Organize your Fabric artifacts following the `fabric-cicd` convention:
+## ✨ Key Features
+
+- **� Incremental Deployments** - Deploy only changed artifacts using git tracking
+- **🏷️ Environment Isolation** - Support for dev/staging/prod with separate configurations
+- **🧪 Safe Testing** - Dry run mode and validation before deployment
+- **🔗 Lakehouse Standardization** - Automatically fix lakehouse references
+- **⚡ Selective Deployment** - Filter by Fabric item types (Reports, Notebooks, etc.)
+
+---
+
+## 📁 Repository Structure
+
+Your repository should contain Fabric artifacts in the expected directory structure:
 
 ```
 your-repo/
-├── fabric-artifacts/              # Source directory
+├── fabric-artifacts/          # ← Default source directory
 │   ├── Notebooks/
-│   │   └── DataProcessing.Notebook/
-│   │       ├── .platform
-│   │       └── notebook-content.py
+│   │   └── MyNotebook.Notebook/
 │   ├── Reports/
-│   │   └── SalesReport.Report/
-│   │       ├── .platform
-│   │       └── definition.json
-│   └── Lakehouses/
-│       └── DataLake.Lakehouse/
-│           └── .platform
+│   │   └── MyReport.Report/
+│   ├── Lakehouses/
+│   └── Pipelines/
 └── .github/workflows/
-    └── fabric-deploy.yml
+    └── deploy-dev.yml
 ```
 
-### 3. Configure Secrets and Variables
+---
 
-**Repository Secrets:**
-- `AZURE_CLIENT_ID` - Service Principal Client ID
-- `AZURE_CLIENT_SECRET` - Service Principal Client Secret
-- `AZURE_TENANT_ID` - Azure Tenant ID
+## ⚙️ Configuration
 
-**Repository Variables:**
-- `FABRIC_WORKSPACE_ID` - Target Fabric workspace ID (GUID)
+### Required Secrets
+| Secret | Description |
+|--------|-------------|
+| `AZURE_CLIENT_ID` | Service Principal Client ID with Fabric permissions |
+| `AZURE_CLIENT_SECRET` | Service Principal Secret |
+| `AZURE_TENANT_ID` | Azure Active Directory Tenant ID |
 
-## 📋 Configuration Options
+### Workflow Inputs
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `workspace_id` | ✅ | - | Microsoft Fabric workspace ID (GUID) |
+| `source_directory` | | `./fabric` | Directory containing Fabric artifacts |
+| `environment` | ✅ | - | Target environment (dev/staging/prod) |
+| `deploy_mode` | | `full` | Deployment mode: `full` or `incremental` |
+| `standardize_default_lakehouse` | | `true` | Fix lakehouse references before deploy |
+| `update_deployment_tag` | | `true` | Create git tags for incremental tracking |
+| `dry_run` | | `false` | Preview changes without deploying |
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `fabric_workspace_id` | ✅ | - | Microsoft Fabric workspace ID (GUID) |
-| `source_directory` | ❌ | `./fabric` | Directory containing Fabric artifacts |
-| `environment` | ❌ | `dev` | Target environment (dev/staging/prod) |
-| `deploy_mode` | ❌ | `auto` | Deployment mode: `full`, `incremental`, or `auto` |
-| `dry_run` | ❌ | `false` | Preview deployment without making changes |
-| `standardize_lakehouse_refs` | ❌ | `false` | Standardize lakehouse references in notebooks |
-| `fabric_item_types` | ❌ | `""` | Comma-separated list of item types to deploy |
+---
 
-### Deployment Modes
+## � Deployment Modes
 
-- **`auto` (Recommended)**: Incremental for dev/staging, full for production
-- **`incremental`**: Deploy only changed items (faster for development)
-- **`full`**: Deploy all items (safer for production)
-
-### Fabric Item Types
-
-Control which artifact types to deploy by specifying `fabric_item_types`:
-
-```yaml
-# Deploy only notebooks and reports
-fabric_item_types: "Notebook,Report"
-
-# Deploy all types (default)
-fabric_item_types: ""
-```
-
-**Supported Types**: `Notebook`, `DataPipeline`, `Environment`, `Report`, `SemanticModel`, `Lakehouse`, `Warehouse`, `KQLDatabase`
-
-## 🛡️ Advanced Features
-
-### Lakehouse Reference Standardization
-
-Enable automatic standardization of lakehouse references for environment-specific deployments:
-
+### Full Deployment
+Deploys all artifacts in the source directory regardless of changes:
 ```yaml
 with:
-  standardize_lakehouse_refs: true
+  deploy_mode: 'full'
 ```
 
-This replaces environment-specific lakehouse IDs with placeholders that get resolved via `parameter.yml` during deployment.
-
-### Selective Item Deployment
-
-Deploy only specific artifact types for faster, targeted deployments:
-
+### Incremental Deployment
+Deploys only artifacts changed since the last deployment tag:
 ```yaml
-# Example: Deploy only notebooks during development
 with:
-  fabric_item_types: "Notebook"
+  deploy_mode: 'incremental'
+  update_deployment_tag: true  # Creates git tag for tracking
 ```
 
-## 🔧 Local Development
+---
 
-### Prerequisites
+## �💻 Local Development
 
-- Python 3.12+
-- Poetry
-- Azure CLI (optional)
-
-### Setup
+For testing and development, you can use the CLI directly:
 
 ```bash
+# Clone and install
 git clone https://github.com/olepetter-no/fabric-deploy-workflow.git
 cd fabric-deploy-workflow
 poetry install
-```
-
-### CLI Usage
-
-```bash
-# Set Azure credentials
-export AZURE_CLIENT_ID="your-client-id"
-export AZURE_CLIENT_SECRET="your-client-secret"
-export AZURE_TENANT_ID="your-tenant-id"
 
 # Validate artifacts
 poetry run fabric-deploy validate \
   --workspace-id "your-workspace-id" \
-  --source-dir "./fabric-artifacts"
+  --source-directory "./fabric-artifacts" \
+  --environment "dev"
 
-# Deploy with dry-run
+# Test deployment (dry run)
 poetry run fabric-deploy deploy \
   --workspace-id "your-workspace-id" \
-  --source-dir "./fabric-artifacts" \
+  --source-directory "./fabric-artifacts" \
   --environment "dev" \
   --dry-run
-
-# Deploy specific item types
-poetry run fabric-deploy deploy \
-  --workspace-id "your-workspace-id" \
-  --source-dir "./fabric-artifacts" \
-  --fabric-items Notebook \
-  --fabric-items DataPipeline
 ```
-
-## 📚 Examples
-
-Common workflow patterns for different use cases:
-
-### Manual Deployment (Recommended)
-```yaml
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        type: choice
-        options: ['dev', 'staging', 'prod']
-      fabric_items:
-        description: 'Item types to deploy (optional)'
-        type: string
-        default: ''
-```
-
-### Automatic CI/CD
-```yaml
-on:
-  push:
-    branches: [main]
-    paths: ['fabric-artifacts/**']
-```
-
-### Pull Request Validation
-```yaml
-on:
-  pull_request:
-    paths: ['fabric-artifacts/**']
-with:
-  dry_run: true  # Always validate, never deploy
-```
-
-See [examples/](examples/) for complete workflow templates.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and test locally
-4. Run pre-commit hooks: `poetry run pre-commit run --all-files`
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🆘 Support
-
-- 📖 [Examples](examples/)
-- 🐛 [Report Issues](https://github.com/olepetter-no/fabric-deploy-workflow/issues)
-- 💬 [Discussions](https://github.com/olepetter-no/fabric-deploy-workflow/discussions)
 
 ---
 
-**Built with ❤️ for the Microsoft Fabric community**
+## 📚 Examples
+
+Ready-to-use workflow examples are available in the [`examples/`](./examples/) directory:
+
+- **[`deploy-dev.yml`](./examples/deploy-dev.yml)** - Manual deployment to development
+- **[`deploy-stage.yml`](./examples/deploy-stage.yml)** - Automatic staging deployment
+- **[`deploy-prod.yml`](./examples/deploy-prod.yml)** - Production deployment with approval
+
+---
+
+## 🏷️ Versioning
+
+Pin to a specific version for stability:
+
+```yaml
+uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.2.3
+```
+
+Or use a major version for automatic updates:
+
+```yaml
+uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1
+```
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history and migration guides.
+
+---

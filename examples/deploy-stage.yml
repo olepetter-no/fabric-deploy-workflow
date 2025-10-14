@@ -3,8 +3,8 @@ name: Deploy to Staging
 on:
   push:
     branches: [stage]
-    paths: ['fabric-artifacts/**']  # Only trigger on fabric changes
-
+    paths:
+      - 'fabric/**'              # adjust to match your real artifact dir
   workflow_dispatch:
     inputs:
       deploy_mode:
@@ -12,25 +12,43 @@ on:
         type: choice
         options: ['incremental', 'full']
         default: 'incremental'
-      update_deployment_tags:
-        description: 'Create and update deployment tags for change tracking'
+      unpublish_orphan_items:
+        description: 'Unpublish orphan items from the workspace'
         type: boolean
         default: true
+      standardize_default_lakehouse:
+        description: 'Standardize default lakehouse references'
+        type: boolean
+        default: true
+      update_deployment_tag:
+        description: 'Create/update deployment tags for change tracking'
+        type: boolean
+        default: true
+      verbose:
+        description: 'Enable verbose (debug-level) output.'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy-staging:
-    # Extra safety: ensure we're on stage branch
+    # Safety: only run when the ref is stage
     if: github.ref == 'refs/heads/stage'
-    environment: stage  # Requires approval in GitHub settings
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    environment: stage
+    permissions:
+      contents: write  # Required for pushing git tags
+      id-token: write  # Required for Azure authentication
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
     with:
-      fabric_workspace_id: ${{ vars.STAGE_FABRIC_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
+      workspace_id: ${{ vars.STAGE_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric'                             # keep consistent with push paths
       environment: 'stage'
-      deploy_mode: ${{ inputs.deploy_mode || 'incremental' }}  # Use input or default to incremental
-      standardize_lakehouse_refs: true
-      fabric_item_types: ''  # Deploy all types
-      update_deployment_tags: ${{ inputs.update_deployment_tags || true }}
+      # Default to incremental on push; allow override when manually dispatched
+      deploy_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_mode || 'incremental' }}
+      unpublish_orphan_items: ${{ github.event_name == 'workflow_dispatch' && inputs.unpublish_orphan_items || true }}
+      standardize_default_lakehouse: ${{ github.event_name == 'workflow_dispatch' && inputs.standardize_default_lakehouse || false }}
+      update_deployment_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.update_deployment_tag || true }}
+      verbose: ${{ github.event_name == 'workflow_dispatch' && inputs.verbose || false }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

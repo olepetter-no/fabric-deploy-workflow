@@ -2,23 +2,28 @@ name: Deploy to Production
 
 on:
   workflow_dispatch:
-    # Only allow manual triggers from main branch
-    # Note: GitHub will only show this workflow when viewing main branch
+    # Manual run; visibility typically from default branch view
 
 jobs:
   deploy-production:
-    # Extra safety: ensure we're on main branch
+    # Extra safety: only run when the ref is main
     if: github.ref == 'refs/heads/main'
-    environment: prod  # Requires approval in GitHub settings
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
+    environment: prod
+    permissions:
+      contents: write  # Required for pushing git tags
+      id-token: write  # Required for Azure authentication
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
     with:
-      fabric_workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
-      source_directory: './fabric-artifacts'
+      workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
+      source_directory: './fabric'
       environment: 'prod'
-      deploy_mode: 'full'
-      standardize_lakehouse_refs: true
-      fabric_item_types: ''  # Deploy all types
-      update_deployment_tags: true  # Production should always track deployments
+      deploy_mode: 'full'                       # prod: explicit full deploy
+      unpublish_orphan_items: true             # clean up orphaned items in prod
+      standardize_default_lakehouse:
+        description: 'Standardize default lakehouse references'
+        type: boolean
+        default: true
+      update_deployment_tag: true              # prod should always track deployments
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

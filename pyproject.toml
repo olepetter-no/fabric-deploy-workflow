@@ -17,7 +17,7 @@ black = "^24.8.0"
 pre-commit = "^3.0.0"
 
 [tool.poetry.scripts]
-fabric-deploy = "fabric_deploy.cli:cli"
+fabric-deploy = "fabric_deploy.cli.app:cli"
 
 [build-system]
 requires = ["poetry-core"]

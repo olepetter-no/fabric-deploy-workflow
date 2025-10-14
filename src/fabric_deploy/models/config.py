@@ -2,33 +2,31 @@
 Deployment configuration model
 """
 
-from dataclasses import dataclass
+import re
+
+from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
 
-# Global Fabric item type configuration
-FABRIC_ITEM_TYPES = [
-    "Notebook",
-    "DataPipeline",
-    "Environment",
-    "Report",
-    "SemanticModel",
-    "Lakehouse",
-    "Warehouse",
-    "KQLDatabase",
-]
-
-FABRIC_ITEM_EXTENSIONS = [f".{item}" for item in FABRIC_ITEM_TYPES]
-
 
 class DeployMode(Enum):
+    """Deployment mode options."""
+
     FULL = "full"
     INCREMENTAL = "incremental"
 
 
+_GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$")
+
+
 @dataclass
 class DeploymentConfig:
-    """Simple configuration for a Fabric deployment"""
+    """
+    Configuration object for Fabric deployment.
+
+    Represents the resolved deployment settings for a single run.
+    Typically constructed by the CLI layer and passed into core logic.
+    """
 
     workspace_id: str
     source_directory: Path
@@ -36,30 +34,23 @@ class DeploymentConfig:
     dry_run: bool = False
     deploy_mode: DeployMode = DeployMode.FULL
     standardize_lakehouse_refs: bool = False
-    fabric_item_types: list[str] = None  # Subset of FABRIC_ITEM_TYPES to deploy
-    update_deployment_tags: bool = True  # Create and update deployment tags
+    fabric_item_types: list[str] = field(default_factory=list)
+    update_deployment_tag: bool = True  # singular for clarity — matches function name
 
     def __post_init__(self):
-        if isinstance(self.source_directory, str):
+        if not isinstance(self.source_directory, Path):
             self.source_directory = Path(self.source_directory)
 
-        # Resolve to absolute path
-        self.source_directory = self.source_directory.resolve()
+        if not isinstance(self.workspace_id, str) or not _GUID_RE.match(self.workspace_id):
+            raise ValueError("workspace_id must be a valid GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
 
-        # Ensure deploy_mode is enum
-        if isinstance(self.deploy_mode, str):
-            self.deploy_mode = DeployMode(self.deploy_mode)
+        if not self.source_directory.exists() or not self.source_directory.is_dir():
+            raise ValueError(f"Source directory does not exist or is not a directory: {self.source_directory}")
 
-        # Set default fabric item types if not specified
-        if self.fabric_item_types is None:
-            self.fabric_item_types = FABRIC_ITEM_TYPES.copy()
-        else:
-            # Validate that specified types are supported
-            invalid_types = [t for t in self.fabric_item_types if t not in FABRIC_ITEM_TYPES]
-            if invalid_types:
-                raise ValueError(
-                    f"Unsupported Fabric item types: {invalid_types}. Supported types: {FABRIC_ITEM_TYPES}"
-                )
+        if not isinstance(self.deploy_mode, DeployMode):
+            try:
+                self.deploy_mode = DeployMode(self.deploy_mode.lower())
+            except Exception:
+                raise ValueError(f"Invalid deploy mode: {self.deploy_mode}")
 
-        # Generate extensions list from selected types
-        self.fabric_item_extensions = [f".{item}" for item in self.fabric_item_types]
+        self.environment = self.environment.lower()

@@ -3,7 +3,7 @@ import sys
 
 
 def setup_logging(verbose: bool = False) -> None:
-    log_level = logging.DEBUG if verbose else logging.INFO
+    log_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

@@ -1,0 +1,138 @@
+name: Release Workflow Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.2.3 or 1.2.3)'
+        required: true
+        type: string
+      move_major_tag:
+        description: 'Also move major tag (e.g., v1) to this release'
+        required: false
+        type: boolean
+        default: true
+      create_github_release:
+        description: 'Create a GitHub Release for this tag'
+        required: false
+        type: boolean
+        default: true
+      prerelease:
+        description: 'Mark the GitHub Release as a prerelease'
+        required: false
+        type: boolean
+        default: false
+
+  release:
+    types: [published]
+
+permissions:
+  contents: write  # needed to push tags and create releases
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Determine VERSION_TAG (always with "v" prefix) and MAJOR_TAG (e.g., v1)
+      - name: Resolve version & major tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Resolve version source (workflow_dispatch input or release event)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RAW="${{ inputs.version }}"
+          else
+            RAW="${{ github.event.release.tag_name }}"
+          fi
+
+          # Normalize to vX.Y or vX.Y.Z (allow input like "1.2.3" or "v1.2.3")
+          if [[ "$RAW" =~ ^v?[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            :
+          else
+            echo "Invalid version format: $RAW"
+            exit 1
+          fi
+
+          # Ensure v-prefix
+          if [[ "$RAW" =~ ^v ]]; then
+            VERSION_TAG="$RAW"
+          else
+            VERSION_TAG="v$RAW"
+          fi
+
+          # Compute major tag (vX)
+          MAJOR="v$(echo "$VERSION_TAG" | sed -E 's/^v([0-9]+).*/\1/')"
+
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "major_tag=$MAJOR" >> "$GITHUB_OUTPUT"
+
+      # Only allow manual release tagging from main for safety
+      - name: Ensure main branch for manual releases
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          CURRENT_BRANCH="${GITHUB_REF##*/}"
+          if [[ "$CURRENT_BRANCH" != "main" ]]; then
+            echo "Manual releases must be run from main branch. Current branch: $CURRENT_BRANCH"
+            exit 1
+          fi
+
+      # Create (or move) the annotated version tag for workflow_dispatch
+      - name: Create version tag
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.version_tag }}"
+
+          # Create/replace annotated tag at HEAD
+          git tag -f -a "$TAG" -m "Release $TAG"
+          git push origin ":refs/tags/$TAG" >/dev/null 2>&1 || true
+          git push origin "$TAG"
+
+      # Move the major tag (v1) to this same commit (optional)
+      - name: Move major tag
+        if: |
+          (github.event_name == 'workflow_dispatch' && inputs.move_major_tag) ||
+          (github.event_name == 'release' && true)
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_TAG="${{ steps.meta.outputs.version_tag }}"
+          MAJOR_TAG="${{ steps.meta.outputs.major_tag }}"
+
+          # Point major tag to the same commit as version tag
+          COMMIT=$(git rev-list -n 1 "$VERSION_TAG")
+          git tag -f "$MAJOR_TAG" "$COMMIT"
+          git push origin ":refs/tags/$MAJOR_TAG" >/dev/null 2>&1 || true
+          git push origin "$MAJOR_TAG"
+
+      # Create a GitHub Release (only for workflow_dispatch)
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_github_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version_tag }}
+          name: ${{ steps.meta.outputs.version_tag }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
