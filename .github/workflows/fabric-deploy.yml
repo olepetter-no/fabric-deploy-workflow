@@ -133,22 +133,25 @@ jobs:
             ${{ inputs.update_deployment_tag && '--update-deployment-tag' || '--no-update-deployment-tag' }} \
             ${{ inputs.verbose && '--verbose' || '' }}
 
-      - name: 🏷️ Push deployment tags
+      - name: 🏷️ Push deployment tag
         if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}
         run: |
-          # Push all latestDeployed/* tags (created by the CLI in the main repo)
-          TAGS="$(git tag --list 'latestDeployed/*')"
-          if [ -z "$TAGS" ]; then
-            echo "No deployment tags to push."
+          set -euo pipefail
+
+          # Only touch the tag that matches the current environment
+          SELF_TAG="latestDeployed/${{ inputs.environment }}"
+
+          # If the CLI didn't create the tag locally, there's nothing to push
+          if ! git rev-parse -q --verify "refs/tags/$SELF_TAG" >/dev/null; then
+            echo "No local tag '$SELF_TAG' to push. Nothing to do."
             exit 0
           fi
 
-          echo "Pushing deployment tags..."
-          while IFS= read -r tag; do
-            # Replace remote tag (force-update)
-            git push origin ":refs/tags/$tag" >/dev/null 2>&1 || true
-            git push origin "$tag"
-          done <<< "$TAGS"
+          echo "Force-updating remote tag: $SELF_TAG"
+          # Delete remote tag if it exists, ignore error if it doesn't
+          git push origin ":refs/tags/$SELF_TAG" >/dev/null 2>&1 || true
+          # Push the local tag
+          git push origin "$SELF_TAG"
 
       - name: ✅ Summary
         if: always()
