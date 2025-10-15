@@ -1,14 +1,14 @@
-name: Deploy to Development
+name: Deploy to Fabric Dev Workspace
 
 on:
   workflow_dispatch:
     inputs:
       workspace_id:
-        description: 'Microsoft Fabric workspace ID'
+        description: 'Target Fabric workspace ID'
         required: true
         type: string
       deploy_mode:
-        description: 'Deployment mode'
+        description: 'Select deployment mode'
         type: choice
         options: ['full', 'incremental']
         default: 'full'
@@ -17,11 +17,11 @@ on:
         type: boolean
         default: true
       standardize_default_lakehouse:
-        description: 'Standardize default lakehouse references'
+        description: 'Standardize default lakehouse references in notebooks'
         type: boolean
-        default: true
-      update_deployment_tag:
-        description: 'Create/update deployment tags for change tracking'
+        default: false
+      update_deployment_tags:
+        description: 'Update or create deployment tags for change tracking'
         type: boolean
         default: true
       dry_run:
@@ -36,20 +36,20 @@ on:
         default: false
 
 jobs:
-  deploy-development:
+  deploy_dev:
     permissions:
-      contents: write  # Required for pushing git tags
-      id-token: write  # Required for Azure authentication
-    # 🔒 Pin to a release tag (recommended), or a commit SHA
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
+      id-token: write
+      contents: write
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
       workspace_id: ${{ inputs.workspace_id }}
-      source_directory: './fabric-artifacts'   # path in THIS repo
+      source_directory: '.'
       environment: 'dev'
       deploy_mode: ${{ inputs.deploy_mode }}
       unpublish_orphan_items: ${{ inputs.unpublish_orphan_items }}
       standardize_default_lakehouse: ${{ inputs.standardize_default_lakehouse }}
-      update_deployment_tag: ${{ inputs.update_deployment_tag }}
+      update_deployment_tag: ${{ inputs.update_deployment_tags }}
+      dry_run: ${{ inputs.dry_run }}
       verbose: ${{ inputs.verbose }}
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

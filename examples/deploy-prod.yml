@@ -1,27 +1,58 @@
-name: Deploy to Production
+name: Deploy to Fabric Prod Workspace
 
 on:
   workflow_dispatch:
-    # Manual run; visibility typically from default branch view
+    inputs:
+      dry_run:
+        description: 'Perform a dry run without making changes'
+        type: boolean
+        default: false
+      verbose:
+        description: 'Enable verbose (debug-level) output'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-fabric-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash -euo pipefail
 
 jobs:
-  deploy-production:
-    # Extra safety: only run when the ref is main
-    if: github.ref == 'refs/heads/main'
+  resolve-vars:
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
     environment: prod
+    outputs:
+      workspace_id: ${{ steps.set.outputs.workspace_id }}
+    steps:
+      - id: set
+        shell: bash
+        run: echo "workspace_id=${{ vars.PROD_FABRIC_WORKSPACE_ID }}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    if: github.ref_name == 'main'
+    needs: resolve-vars
     permissions:
-      contents: write  # Required for pushing git tags
-      id-token: write  # Required for Azure authentication
-    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@v1.0.0
+      contents: write
+      id-token: write
+    uses: olepetter-no/fabric-deploy-workflow/.github/workflows/fabric-deploy.yml@main
     with:
-      workspace_id: ${{ vars.PROD_FABRIC_WORKSPACE_ID }}
+      workspace_id: ${{ needs.resolve-vars.outputs.workspace_id }}
       source_directory: './fabric'
       environment: 'prod'
-      deploy_mode: 'full'                       # prod: explicit full deploy
-      unpublish_orphan_items: true              # clean up orphaned items in prod
-      standardize_default_lakehouse: true       # prod should always standardize default lakehoues
-      update_deployment_tag: true               # prod should always track deployments
+      deploy_mode: 'full'
+      unpublish_orphan_items: true
+      standardize_default_lakehouse: true
+      update_deployment_tag: true
+      dry_run: ${{ inputs.dry_run }}
+      verbose: ${{ inputs.verbose }}
     secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_ID:     ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_TENANT_ID:     ${{ secrets.AZURE_TENANT_ID }}
