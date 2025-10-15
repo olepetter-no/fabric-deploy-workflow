@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   resolve-vars:
-    if: github.ref_name == 'main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     outputs:
@@ -36,7 +36,7 @@ jobs:
         run: echo "workspace_id=${{ vars.PROD_FABRIC_WORKSPACE_ID }}" >> "$GITHUB_OUTPUT"
 
   deploy:
-    if: github.ref_name == 'main'
+    if: github.ref == 'refs/heads/main'
     needs: resolve-vars
     permissions:
       contents: write
