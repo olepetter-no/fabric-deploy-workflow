@@ -42,7 +42,9 @@ class DeploymentConfig:
             self.source_directory = Path(self.source_directory)
 
         if not isinstance(self.workspace_id, str) or not _GUID_RE.match(self.workspace_id):
-            raise ValueError("workspace_id must be a valid GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+            raise ValueError(
+                f"workspace_id: {self.workspace_id} must be a valid GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
+            )
 
         if not self.source_directory.exists() or not self.source_directory.is_dir():
             raise ValueError(f"Source directory does not exist or is not a directory: {self.source_directory}")
