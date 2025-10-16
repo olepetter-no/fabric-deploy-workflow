@@ -61,7 +61,11 @@ class GitOperations:
         repo_root = self._get_repo_root(source_dir)
 
         logger.info("Checking for changed files since %s", tag)
-        modified = self._run(["git", "diff", "--name-only", "--diff-filter=d", f"{tag}..HEAD", "--", source_dir], capture_output=True, text=True) #exclude delete from this operation
+        modified = self._run(
+            ["git", "diff", "--name-only", "--diff-filter=d", f"{tag}..HEAD", "--", source_dir],
+            capture_output=True,
+            text=True,
+        )  # exclude delete from this operation
 
         modified_files = [f for f in modified.stdout.splitlines() if f]
         abs_modified_files = [str((repo_root / f).resolve()) for f in modified_files]
@@ -69,13 +73,17 @@ class GitOperations:
         logger.info("Found %d changed file(s)", len(modified_files))
 
         return abs_modified_files
-    
+
     def get_deleted_files_since_tag(self, tag: str, source_dir: str) -> List[str]:
         if not self.tag_exists(tag):
             raise RuntimeError(f"Tag not found: {tag}")
 
         logger.info("Checking for deleted files since %s", tag)
-        modified = self._run(["git", "diff", "--name-only", "--diff-filter=D", f"{tag}..HEAD", "--", source_dir], capture_output=True, text=True)
+        modified = self._run(
+            ["git", "diff", "--name-only", "--diff-filter=D", f"{tag}..HEAD", "--", source_dir],
+            capture_output=True,
+            text=True,
+        )
 
         deleted_files = [f for f in modified.stdout.splitlines() if f]
 
