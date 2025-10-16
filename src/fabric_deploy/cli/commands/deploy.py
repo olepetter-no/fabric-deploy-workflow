@@ -181,7 +181,7 @@ def cmd(
             if dry_run:
                 click.echo("[Dry run]: 🔄 would update deployment tag at HEAD")
             else:
-                delta.update_tag(src_dir, environment)
+                delta.update_deployment_tag(src_dir, environment)
         except RuntimeError as e:
             click.echo(f"Warning: failed to update deployment tag: {e}", err=True)
 
