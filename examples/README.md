@@ -78,7 +78,7 @@ It handles:
 ## Tips
 
 - Use **incremental** for dev/stage, **full** for prod.
-- Keep `update_deployment_tag` enabled for incremental tracking.
+- Keep `update_tag` enabled for incremental tracking.
 - Require **manual approval** for production environments.
 - Pin to a release tag (e.g. `@v1.0.0`) for stable builds.
 

@@ -45,7 +45,7 @@ from ...utils.logging import setup_logging
     help="Standardize default lakehouse references in notebooks before deployment",
 )
 @click.option(
-    "--update-deployment-tag/--no-update-deployment-tag",
+    "--update-tag/--no-update-tag",
     default=True,
     show_default=True,
     help="Maintain a git tag for last deployment to enable incremental mode.",

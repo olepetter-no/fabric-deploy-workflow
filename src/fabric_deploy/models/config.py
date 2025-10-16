@@ -35,7 +35,7 @@ class DeploymentConfig:
     deploy_mode: DeployMode = DeployMode.FULL
     standardize_lakehouse_refs: bool = False
     fabric_item_types: list[str] = field(default_factory=list)
-    update_deployment_tag: bool = True  # singular for clarity — matches function name
+    update_tag: bool = True  # singular for clarity — matches function name
 
     def __post_init__(self):
         if not isinstance(self.source_directory, Path):
