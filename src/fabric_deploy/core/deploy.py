@@ -62,6 +62,8 @@ def run_incremental(*, workspace: FabricWorkspace, changed_items: list[str], dry
         workspace.workspace_id,
     )
 
+    logger.debug(f"Changed items: {changed_items}")
+
     try:
         publish_all_items(workspace, items_to_include=list(changed_items))
         return DeploymentResult(True, len(changed_items), "incremental", "Incremental deployment succeeded.")

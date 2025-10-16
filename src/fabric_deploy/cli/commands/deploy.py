@@ -45,7 +45,7 @@ from ...utils.logging import setup_logging
     help="Standardize default lakehouse references in notebooks before deployment",
 )
 @click.option(
-    "--update-deployment-tag/--no-update-deployment-tag",
+    "--update-tag/--no-update-tag",
     default=True,
     show_default=True,
     help="Maintain a git tag for last deployment to enable incremental mode.",
@@ -120,6 +120,13 @@ def cmd(
         repo_directory=str(src_dir),
         credentials=creds,
     )
+    ## Prevents the cleanup operation from being affected by changes to the workspace during publish
+    clean_up_workspace = create_fabric_workspace_object(
+        workspace_id=workspace_id,
+        environment=environment,
+        repo_directory=str(src_dir),
+        credentials=creds,
+    )
 
     # 4) optional lakehouse processing
     if standardize_default_lakehouse:
@@ -142,12 +149,14 @@ def cmd(
             result = DeploymentResult(True, 0, "incremental", "ℹ️ No changed items detected for incremental deploy.")
 
         else:
+            click.echo(f"Running incremental deploy. Number of items changed: {len(changed_fabric_items)}")
             result = deploy_core.run_incremental(
                 workspace=workspace,
                 changed_items=changed_fabric_items,
                 dry_run=dry_run,
             )
     elif mode == "full":
+        click.echo("Running full deploy")
         result = deploy_core.run_full(workspace=workspace, dry_run=dry_run)
 
     else:
@@ -158,7 +167,7 @@ def cmd(
 
     # 7) Unpublish items no longer connected to the repo
     if unpublish_orphan_items:
-        unpublish_result = deploy_core.run_unpublish_orphans(workspace=workspace, dry_run=dry_run)
+        unpublish_result = deploy_core.run_unpublish_orphans(workspace=clean_up_workspace, dry_run=dry_run)
         record(unpublish_result)
 
     # 7) optional tag update

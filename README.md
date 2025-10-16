@@ -83,7 +83,7 @@ your-repo/
 | `environment` | ✅ | - | Target environment (dev/staging/prod) |
 | `deploy_mode` | | `full` | Deployment mode: `full` or `incremental` |
 | `standardize_default_lakehouse` | | `true` | Fix lakehouse references before deploy |
-| `update_deployment_tag` | | `true` | Create git tags for incremental tracking |
+| `update_tag` | | `true` | Create git tags for incremental tracking |
 | `dry_run` | | `false` | Preview changes without deploying |
 
 ---
@@ -102,7 +102,7 @@ Deploys only artifacts changed since the last deployment tag:
 ```yaml
 with:
   deploy_mode: 'incremental'
-  update_deployment_tag: true  # Creates git tag for tracking
+  update_tag: true  # Creates git tag for tracking
 ```
 
 ---
