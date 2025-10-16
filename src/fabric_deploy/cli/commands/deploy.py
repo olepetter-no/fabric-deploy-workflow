@@ -65,7 +65,7 @@ def cmd(
     unpublish_orphan_items,
     deploy_mode,
     standardize_default_lakehouse,
-    update_deployment_tag,
+    update_tag,
     verbose,
 ):
     """
@@ -87,7 +87,7 @@ def cmd(
     click.echo(f"  Mode:                            {deploy_mode}")
     click.echo(f"  Unpublish orphans:               {unpublish_orphan_items}")
     click.echo(f"  Standardize default lakehouse:   {standardize_default_lakehouse}")
-    click.echo(f"  Update tag:                      {update_deployment_tag}")
+    click.echo(f"  Update tag:                      {update_tag}")
     click.echo(f"  Dry run:                         {dry_run}")
     click.echo(f"  Verbose:                         {verbose}")
     click.echo("────────────────────────────────────────────────────────────────\n")
@@ -171,12 +171,12 @@ def cmd(
         record(unpublish_result)
 
     # 7) optional tag update
-    if update_deployment_tag:
+    if update_tag:
         try:
             if dry_run:
                 click.echo("[Dry run]: 🔄 would update deployment tag at HEAD")
             else:
-                delta.update_deployment_tag(src_dir, environment)
+                delta.update_tag(src_dir, environment)
         except RuntimeError as e:
             click.echo(f"Warning: failed to update deployment tag: {e}", err=True)
 

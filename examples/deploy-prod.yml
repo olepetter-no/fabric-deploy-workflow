@@ -49,7 +49,7 @@ jobs:
       deploy_mode: 'full'
       unpublish_orphan_items: true
       standardize_default_lakehouse: true
-      update_deployment_tag: true
+      update_tag: true
       dry_run: ${{ inputs.dry_run }}
       verbose: ${{ inputs.verbose }}
     secrets:
