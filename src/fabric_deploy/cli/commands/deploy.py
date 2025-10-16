@@ -70,12 +70,17 @@ def cmd(
 ):
     """
     Orchestration:
-      1) Resolve paths, setup logging
-      2) Prepare FabricWorkspace
-      3) full vs incremental selection (git tag based)
-      4) optional lakehouse standardization
-      5) deploy
-      6) optionally update deployment tag
+      1) Show configuration, initialize logging, resolve paths
+      2) Validate source directory (exists + inside a Git repo)
+      3) Authenticate and create Fabric workspace clients
+         - primary client for deployment
+         - separate client for cleanup to avoid publish-time mutations
+      4) Optionally standardize default lakehouse references in notebooks
+      5) Determine deployment scope (full vs. incremental via git tag)
+      6) Execute deployment
+      7) Optionally unpublish orphan items
+      8) Optionally update deployment tag
+      9) Emit summary and exit with status
     """
 
     # --- Print selected settings ---
@@ -170,7 +175,7 @@ def cmd(
         unpublish_result = deploy_core.run_unpublish_orphans(workspace=clean_up_workspace, dry_run=dry_run)
         record(unpublish_result)
 
-    # 7) optional tag update
+    # 8) optional tag update
     if update_tag:
         try:
             if dry_run:
