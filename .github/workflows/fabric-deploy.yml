@@ -130,7 +130,7 @@ jobs:
             ${{ inputs.dry_run && '--dry-run' || '' }} \
             ${{ inputs.unpublish_orphan_items && '--unpublish-orphan-items' || '' }} \
             ${{ inputs.standardize_default_lakehouse && '--standardize-default-lakehouse' || '' }} \
-            ${{ inputs.update_tag && '--update-deployment-tag' || '--no-update-deployment-tag' }} \
+            ${{ inputs.update_tag && '--update-tag' || '--no-update-tag' }} \
             ${{ inputs.verbose && '--verbose' || '' }}
 
       - name: 🏷️ Push deployment tag
