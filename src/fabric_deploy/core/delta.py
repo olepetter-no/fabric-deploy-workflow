@@ -12,10 +12,16 @@ def is_initial_deployment(repo_root: Path, environment: str) -> bool:
 
 
 def get_changed_files(repo_root: Path, environment: str, *, source_dir: str) -> list[str]:
-    """Returns changed files within source_dir since last deployment tag."""
+    """Returns non-deleted files within source_dir since last deployment tag (ABS paths)."""
     g = _git(repo_root)
     tag = g.get_deployment_tag(environment)
     return g.get_changed_files_since_tag(tag, source_dir=source_dir)
+
+def get_deleted_files(repo_root: Path, environment: str, *, source_dir: str) -> list[str]:
+    """Returns deleted files within source_dir since last deployment tag (repo-relative paths)."""
+    g = _git(repo_root)
+    tag = g.get_deployment_tag(environment)
+    return g.get_deleted_files_since_tag(tag, source_dir=source_dir)
 
 
 def update_deployment_tag(repo_root: Path, environment: str) -> None:

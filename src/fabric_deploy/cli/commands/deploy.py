@@ -147,12 +147,18 @@ def cmd(
             mode = "full"
         else:
             changed_files = delta.get_changed_files(src_dir, environment, source_dir=str(src_dir))
+            deleted_files = delta.get_deleted_files(src_dir, environment, source_dir=str(src_dir))
             changed_fabric_items = fabric_items.extract_changed_items(paths=changed_files)
     # 6) deploy
     if mode == "incremental":
-        if not changed_fabric_items:
-            result = DeploymentResult(True, 0, "incremental", "ℹ️ No changed items detected for incremental deploy.")
-
+        changed_count = len(changed_fabric_items or [])
+        if changed_count == 0:
+            msg = (
+                f"ℹ️ Only deleted files detected for incremental deploy. Number of deleted files: {len(deleted_files)}"
+                if deleted_files
+                else "ℹ️ No changed items detected for incremental deploy."
+            )
+            result = DeploymentResult(True, 0, "incremental", msg)
         else:
             click.echo(f"Running incremental deploy. Number of items changed: {len(changed_fabric_items)}")
             result = deploy_core.run_incremental(
