@@ -31,7 +31,7 @@ on:
         required: false
         type: boolean
         default: true
-      update_deployment_tag:
+      update_tag:
         description: 'Create/update deployment tag for incremental tracking'
         required: false
         type: boolean
@@ -109,7 +109,7 @@ jobs:
             --environment "${{ inputs.environment }}"
 
       - name: ⚙️ Configure git identity (for tag pushes)
-        if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}
+        if: ${{ !inputs.dry_run && inputs.update_tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -130,11 +130,11 @@ jobs:
             ${{ inputs.dry_run && '--dry-run' || '' }} \
             ${{ inputs.unpublish_orphan_items && '--unpublish-orphan-items' || '' }} \
             ${{ inputs.standardize_default_lakehouse && '--standardize-default-lakehouse' || '' }} \
-            ${{ inputs.update_deployment_tag && '--update-deployment-tag' || '--no-update-deployment-tag' }} \
+            ${{ inputs.update_tag && '--update-deployment-tag' || '--no-update-deployment-tag' }} \
             ${{ inputs.verbose && '--verbose' || '' }}
 
       - name: 🏷️ Push deployment tag
-        if: ${{ !inputs.dry_run && inputs.update_deployment_tag }}
+        if: ${{ !inputs.dry_run && inputs.update_tag }}
         run: |
           set -euo pipefail
 

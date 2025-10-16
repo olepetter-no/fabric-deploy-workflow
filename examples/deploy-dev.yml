@@ -20,7 +20,7 @@ on:
         description: 'Standardize default lakehouse references in notebooks'
         type: boolean
         default: false
-      update_deployment_tags:
+      update_tags:
         description: 'Update or create deployment tags for change tracking'
         type: boolean
         default: true
@@ -48,7 +48,7 @@ jobs:
       deploy_mode: ${{ inputs.deploy_mode }}
       unpublish_orphan_items: ${{ inputs.unpublish_orphan_items }}
       standardize_default_lakehouse: ${{ inputs.standardize_default_lakehouse }}
-      update_deployment_tag: ${{ inputs.update_deployment_tags }}
+      update_tag: ${{ inputs.update_tags }}
       dry_run: ${{ inputs.dry_run }}
       verbose: ${{ inputs.verbose }}
     secrets:

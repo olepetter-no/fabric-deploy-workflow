@@ -20,7 +20,7 @@ on:
         description: 'Standardize default lakehouse references'
         type: boolean
         default: true
-      update_deployment_tag:
+      update_tag:
         description: 'Create/update deployment tags'
         type: boolean
         default: true
@@ -69,7 +69,7 @@ jobs:
       deploy_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_mode || 'incremental' }}
       unpublish_orphan_items: ${{ github.event_name == 'workflow_dispatch' && inputs.unpublish_orphan_items || true }}
       standardize_default_lakehouse: ${{ github.event_name == 'workflow_dispatch' && inputs.standardize_default_lakehouse || true }}
-      update_deployment_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.update_deployment_tag || true }}
+      update_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.update_tag || true }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
       verbose: ${{ github.event_name == 'workflow_dispatch' && inputs.verbose || false }}
     secrets:
