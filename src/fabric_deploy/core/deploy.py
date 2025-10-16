@@ -62,7 +62,6 @@ def run_incremental(*, workspace: FabricWorkspace, changed_items: list[str], dry
         workspace.workspace_id,
     )
 
-
     logger.debug(f"Changed items: {changed_items}")
 
     try:

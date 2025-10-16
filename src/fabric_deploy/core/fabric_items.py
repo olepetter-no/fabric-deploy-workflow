@@ -58,6 +58,7 @@ def _extract_item_id(path: str) -> Optional[str]:
 
     return None
 
+
 def extract_changed_items(paths: Iterable[str]) -> List[str]:
     """
     Given a list of changed file paths,

@@ -37,15 +37,11 @@ class GitOperations:
         try:
             p = Path(path).resolve()
             start = p if p.is_dir() else p.parent
-            root = subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"],
-                text=True,
-                cwd=start
-            ).strip()
+            root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True, cwd=start).strip()
             return Path(root)
         except subprocess.CalledProcessError:
             raise RuntimeError("Not inside a Git repository.")
-    
+
     def get_deployment_tag(self, environment: str) -> str:
         return f"latestDeployed/{environment}"
 
