@@ -32,6 +32,20 @@ class GitOperations:
         except Exception as e:
             raise RuntimeError(f"Unexpected error while checking git repo: {e}") from e
 
+    def _get_repo_root(self, path: str | Path) -> Path:
+        """Return the absolute path to the root of the current Git repository."""
+        try:
+            p = Path(path).resolve()
+            start = p if p.is_dir() else p.parent
+            root = subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"],
+                text=True,
+                cwd=start
+            ).strip()
+            return Path(root)
+        except subprocess.CalledProcessError:
+            raise RuntimeError("Not inside a Git repository.")
+    
     def get_deployment_tag(self, environment: str) -> str:
         return f"latestDeployed/{environment}"
 
@@ -48,11 +62,14 @@ class GitOperations:
         if not self.tag_exists(tag):
             raise RuntimeError(f"Tag not found: {tag}")
 
+        repo_root = self._get_repo_root(source_dir)
+
         logger.info("Checking for changed files since %s", tag)
         cp = self._run(["git", "diff", "--name-only", f"{tag}..HEAD", "--", source_dir], capture_output=True, text=True)
-        files = [f for f in cp.stdout.splitlines() if f]
-        logger.info("Found %d changed file(s)", len(files))
-        return files
+        relative_files = [f for f in cp.stdout.splitlines() if f]
+        absolute_files = [str((repo_root / f).resolve()) for f in relative_files]
+        logger.info("Found %d changed file(s)", len(absolute_files))
+        return absolute_files
 
     def create_or_update_tag(self, tag: str, ref: str = "HEAD") -> bool:
         if self.tag_exists(tag):
